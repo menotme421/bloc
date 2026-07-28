@@ -7,11 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "cf:build": "npx opennextjs-cloudflare build",
-    "cf:preview": "npx opennextjs-cloudflare build && npx wrangler dev",
-    "cf:deploy": "npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy"
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && wrangler dev",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.9",
     "@tiptap/pm": "^3.29.1",
     "@tiptap/react": "^3.29.1",
     "@tiptap/starter-kit": "^3.29.1",
