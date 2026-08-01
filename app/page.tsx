@@ -1,18 +1,19 @@
+import { Hero1 } from "@/components/hero";
 import { Navbar1 } from "@/components/navbar"
 import { Footer2 } from "@/components/footer2"
 import { Cta39 } from "@/components/ui/cta"
+import { Pricing2 } from "@/components/pricing";
+import { Feature73 } from "@/components/feature";
 
 export default function LandingPage(){
   return(
-    <main>
+    <main>  
       <Navbar1/>
-      {/* hero section(find hero section) */}
-      {/* Feature (find feature section)*/}
-      {/* Pricing (find pricing section)*/}
-      {/* Hero section(suggestion: use hero section) */}
-       <Cta39 />
+      <Hero1 />
+      <Feature73 />
+      <Pricing2 />
+      <Cta39 />
       <Footer2/>
     </main>
-
   )
 }

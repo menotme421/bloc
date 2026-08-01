@@ -93,12 +93,10 @@ const Navbar1 = ({
             </div>
           </div>
           <div className="flex gap-2">
-            <Button asChild className="btn btn-secondary ">
-              <a href={auth.login.url}>{auth.login.title}</a>
-            </Button>
-            <Button asChild className="btn btn-primary">
-              <a href={auth.signup.url}>{auth.signup.title}</a>
-            </Button>
+            <div className="flex gap-2">
+              <a href={auth.login.url} className="btn btn-secondary btn-sm">{auth.login.title}</a>
+              <a href={auth.signup.url} className="btn btn-primary btn-sm">{auth.signup.title}</a>
+            </div>
           </div>
         </nav>
 
@@ -137,12 +135,8 @@ const Navbar1 = ({
                   </Accordion>
 
                   <div className="flex flex-col gap-3">
-                    <Button asChild className="btn btn-secondary ">
-                      <a href={auth.login.url}>{auth.login.title}</a>
-                    </Button>
-                    <Button asChild className="btn btn-primary">
-                      <a href={auth.signup.url}>{auth.signup.title}</a>
-                    </Button>
+                    <a href={auth.login.url} className="btn btn-secondary">{auth.login.title}</a>
+                    <a href={auth.signup.url} className="btn btn-primary">{auth.signup.title}</a>
                   </div>
                 </div>
               </SheetContent>
