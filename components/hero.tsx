@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface HeroButton {
   text: string;
@@ -33,8 +33,8 @@ const Hero1 = (props: Props) => {
   };
 
   return (
-    <section className={className}>
-      <div className="container-page pt-16">
+    <section className={cn("section", className)}>
+      <div className="container-page">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
           <h1 className="text-pretty text-hero">
             {heading}
@@ -43,7 +43,7 @@ const Hero1 = (props: Props) => {
             {description}
           </p>
           {button && (
-            <a href={button.url} className="btn btn-primary btn-lg flex items-center gap-2">
+            <a href={button.url} className="btn btn-nav btn-primary flex items-center gap-2">
               {button.text}
               <ArrowRight className="size-4" />
             </a>

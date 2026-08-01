@@ -81,7 +81,7 @@ const Pricing2 = (props: Props) => {
   };
 
   return (
-    <section className={cn("pb-32 pt-8", className)}>
+    <section id="pricing" className={cn("section", className)}>
       <div className="container-page">
         <div className="mx-auto mb-5 max-w-5xl text-center">
           <h2 className="mb-4 text-section">
@@ -95,7 +95,7 @@ const Pricing2 = (props: Props) => {
             {(plans ?? []).map((plan) => (
               <Card
                 key={plan.name}
-                className="flex w-full max-w-full min-w-0 flex-col justify-between gap-8 border border-border text-left shadow-none ring-0 md:flex-1 md:basis-0"
+                className="flex w-full max-w-full min-w-0 flex-col justify-between gap-8 rounded-md border border-border text-left shadow-none ring-0 md:flex-1 md:basis-0"
               >
                 <CardHeader className="gap-0.5">
                   <CardTitle>
@@ -125,7 +125,7 @@ const Pricing2 = (props: Props) => {
                         className="flex items-center gap-2 text-body"
                       >
                         <CircleCheck className="size-4 shrink-0" />
-                        <span className="min-w-0 wrap-break-word">
+                        <span className="min-w-0 break-words">
                           {feature}
                         </span>
                       </li>

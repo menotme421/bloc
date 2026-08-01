@@ -92,7 +92,7 @@ const Feature73 = (props: Props) => {
   };
 
   return (
-    <section className={cn("py-32", className)}>
+    <section id="features" className={cn("section", className)}>
       <div className="container-page">
         <div className="mx-auto mb-9 text-center lg:mb-14 lg:max-w-3xl">
           <h2 className="mb-3 text-section text-balance md:mb-4 lg:mb-6">
@@ -119,7 +119,7 @@ const Feature73 = (props: Props) => {
           {features?.slice(0, 3).map((feature, i) => (
             <div
               key={i}
-              className="flex flex-col items-center gap-[50px] rounded-md bg-card p-5 text-center"
+              className="card card-bordered flex flex-col items-center gap-8 text-center"
             >
               <a href={feature.href}>
                 <img

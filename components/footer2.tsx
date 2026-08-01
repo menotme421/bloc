@@ -89,7 +89,7 @@ const Footer2 = (props: Props) => {
   const visibleSections = (sections ?? []).slice(0, MAX_SECTIONS);
 
   return (
-    <section className={cn("py-32", className)}>
+    <section className={cn("section", className)}>
       <div className="container-page">
         <footer>
           <div className="grid grid-cols-2 gap-8 lg:grid-cols-6">
@@ -99,16 +99,16 @@ const Footer2 = (props: Props) => {
                   <span className="text-logo ">Bloc.</span>
                 </a>
               </div>
-              <p className="mt-4 text-base text-foreground-muted">
+              <p className="mt-4 text-body text-foreground-muted">
                 {description}
               </p>
             </div>
             {visibleSections.map((section, sectionIdx) => (
               <div key={sectionIdx}>
-                <h3 className="mb-4 text-base text-foreground">
+                <h3 className="mb-4 text-body-semibold text-foreground">
                   {section.title}
                 </h3>
-                <ul className="space-y-4 text-base text-foreground-muted">
+                <ul className="space-y-4 text-body text-foreground-muted">
                   {section.links.map((link, linkIdx) => (
                     <li
                       key={linkIdx}
@@ -122,10 +122,10 @@ const Footer2 = (props: Props) => {
             ))}
           </div>
           <div className="mt-8 flex flex-col justify-between gap-4 border-t border-border pt-8 text-caption text-foreground-muted md:flex-row md:items-center">
-            <p className="text-sm">{copyright}</p>
+            <p>{copyright}</p>
             <ul className="flex gap-4">
               {legalLinks?.map((link, linkIdx) => (
-                <li key={linkIdx} className="underline text-sm hover:text-primary">
+                <li key={linkIdx} className="underline hover:text-primary">
                   <a href={link.href}>{link.name}</a>
                 </li>
               ))}

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -64,9 +65,9 @@ const Navbar1 = ({
     title: "bloc",
   },
   menu = [
-    { title: "About", url: "#" },
-    { title: "Feature", url: "#",},
-    { title: "Pricing",url: "#",},
+    { title: "About", url: "#about" },
+    { title: "Feature", url: "#features",},
+    { title: "Pricing",url: "#pricing",},
   ],
   auth = {
     login: { title: "Sign in", url: "#" },
@@ -109,7 +110,11 @@ const Navbar1 = ({
             </a>
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="focus-visible:border-transparent focus-visible:ring-0"
+                >
                   <Menu className="size-4" />
                 </Button>
               </SheetTrigger>
@@ -117,11 +122,7 @@ const Navbar1 = ({
                 <SheetHeader>
                   <SheetTitle>
                     <a href={logo.url} className="flex items-center gap-2">
-                      <img
-                        src={logo.src}
-                        className="max-h-8 dark:invert"
-                        alt={logo.alt}
-                      />
+                      <span className="text-logo">Bloc.</span>
                     </a>
                   </SheetTitle>
                 </SheetHeader>
@@ -193,9 +194,11 @@ const renderMobileMenuItem = (item: MenuItem) => {
   }
 
   return (
-    <a key={item.title} href={item.url} className="text-nav font-semibold">
-      {item.title}
-    </a>
+    <SheetClose asChild>
+      <a key={item.title} href={item.url} className="text-nav font-semibold">
+        {item.title}
+      </a>
+    </SheetClose>
   );
 };
 

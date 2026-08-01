@@ -80,7 +80,7 @@
 :root {
 
   /* ── Font ──────────────────────────────────────────────── */
-  --font-sans: "DM Sans", sans-serif;
+  --font-sans: var(--font-geist-sans), "DM Sans", sans-serif;
   --font-size-root: 16px;
 
   /* ── Surfaces ──────────────────────────────────────────── */
@@ -420,6 +420,7 @@
 
   html {
     font-size: var(--font-size-root);
+    scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
