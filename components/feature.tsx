@@ -93,13 +93,13 @@ const Feature73 = (props: Props) => {
 
   return (
     <section className={cn("py-32", className)}>
-      <div className="container mx-auto">
+      <div className="container-page">
         <div className="mx-auto mb-9 text-center lg:mb-14 lg:max-w-3xl">
-          <h2 className="mb-3 text-3xl font-semibold tracking-tight text-balance md:mb-4 md:text-4xl lg:mb-6">
+          <h2 className="mb-3 text-section text-balance md:mb-4 lg:mb-6">
             {heading}
           </h2>
           {description && (
-            <p className="mb-8 text-muted-foreground lg:text-lg">
+            <p className="mb-8 text-body text-foreground-muted">
               {description}
             </p>
           )}
@@ -129,10 +129,10 @@ const Feature73 = (props: Props) => {
                 />
               </a>
               <div>
-                <h3 className="mb-2 text-base font-semibold md:text-lg">
+                <h3 className="mb-2 text-body-semibold">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-muted-foreground md:text-base lg:text-lg">
+                <p className="text-body text-foreground-muted">
                   {feature.description}
                 </p>
               </div>
