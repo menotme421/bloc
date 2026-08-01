@@ -1,13 +1,16 @@
+import {Hero1 } from "@/components/hero";
 import { Navbar1 } from "@/components/navbar"
 import { Footer2 } from "@/components/footer2"
+import { Pricing2 } from "@/components/pricing";
+import { Feature73 } from "./feature";
 
 export default function LandingPage(){
   return(
-    <main>
+    <main>  
       <Navbar1/>
-      {/* hero section(find hero section) */}
-      {/* Feature (find feature section)*/}
-      {/* Pricing (find pricing section)*/}
+      <Hero1 />
+      <Feature73 />
+      <Pricing2 />
       {/* Hero section(suggestion: use hero section) */}
       <Footer2/>
     </main>
