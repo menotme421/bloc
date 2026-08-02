@@ -29,10 +29,6 @@ const defaultProps: Cta39Props = {
       text: "Get Started",
       url: "https://shadcnblocks.com",
     },
-    secondary: {
-      text: "Schedule a Demo",
-      url: "https://shadcnblocks.com",
-    },
   },
 };
 

@@ -1,7 +1,7 @@
 import { Hero1 } from "@/components/hero";
 import { Navbar1 } from "@/components/navbar"
 import { Footer2 } from "@/components/footer2"
-import { Cta39 } from "@/components/ui/cta"
+import { Cta39 } from "@/components/cta"
 import { Pricing2 } from "@/components/pricing";
 import { Feature73 } from "@/components/feature";
 
