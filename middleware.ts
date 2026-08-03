@@ -43,12 +43,18 @@ export async function middleware(request: NextRequest) {
   const isProtected =
     pathname.startsWith("/app") || pathname.startsWith("/notes");
   const isAuthRoute = pathname.startsWith("/auth");
+  const isCallback = pathname.startsWith("/auth/callback");
+  const isLanding = pathname === "/";
 
   if (isProtected && !isAuthed) {
     return NextResponse.redirect(new URL("/auth", request.url));
   }
 
-  if (isAuthRoute && isAuthed) {
+  if (isAuthRoute && !isCallback && isAuthed) {
+    return NextResponse.redirect(new URL("/app", request.url));
+  }
+
+  if (isLanding && isAuthed) {
     return NextResponse.redirect(new URL("/app", request.url));
   }
 
@@ -56,5 +62,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/notes/:path*", "/auth/:path*"],
+  matcher: ["/app/:path*", "/notes/:path*", "/auth/:path*", "/"],
 };

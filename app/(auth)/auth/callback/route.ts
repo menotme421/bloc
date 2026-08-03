@@ -27,7 +27,11 @@ export async function GET(request: NextRequest) {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
-        return NextResponse.redirect(`${origin}/app`);
+        return NextResponse.redirect(
+          type === "recovery"
+            ? `${origin}/reset-password`
+            : `${origin}/app`
+        );
       }
     }
   }

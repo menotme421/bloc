@@ -70,7 +70,7 @@ const Navbar1 = ({
     { title: "Pricing",url: "#pricing",},
   ],
   auth = {
-    login: { title: "Sign in", url: "/auth" },
+    login: { title: "Sign in", url: "/auth?mode=signin" },
     signup: { title: "Sign up", url: "/auth" },
   },
   className,
