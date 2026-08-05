@@ -13,10 +13,12 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && data.session) {
+      const isRecovery =
+        type === "recovery" ||
+        (data as { redirectType?: string | null }).redirectType ===
+          "recovery";
       return NextResponse.redirect(
-        type === "recovery"
-          ? `${origin}/reset-password`
-          : `${origin}/app`
+        isRecovery ? `${origin}/reset-password` : `${origin}/app`
       );
     }
     console.error("[auth/callback] code exchange failed", error);
