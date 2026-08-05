@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && data.session) {
-      return NextResponse.redirect(`${origin}/app`);
+      return NextResponse.redirect(
+        type === "recovery"
+          ? `${origin}/reset-password`
+          : `${origin}/app`
+      );
     }
     console.error("[auth/callback] code exchange failed", error);
     return NextResponse.redirect(`${origin}/auth?error=auth_code_exchange`);
