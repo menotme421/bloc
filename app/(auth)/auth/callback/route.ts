@@ -11,30 +11,34 @@ export async function GET(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
 
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data.session) {
       return NextResponse.redirect(`${origin}/app`);
     }
+    console.error("[auth/callback] code exchange failed", error);
+    return NextResponse.redirect(`${origin}/auth?error=auth_code_exchange`);
   }
 
   if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: type as "email" | "sms" | "email_change" | "recovery",
     });
-    if (!error) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        return NextResponse.redirect(
-          type === "recovery"
-            ? `${origin}/reset-password`
-            : `${origin}/app`
-        );
-      }
+    if (!error && data.user) {
+      return NextResponse.redirect(
+        type === "recovery"
+          ? `${origin}/reset-password`
+          : `${origin}/app`
+      );
     }
+    console.error("[auth/callback] otp verification failed", { type, error });
+    const expired =
+      error?.code === "otp_expired" ||
+      error?.message?.toLowerCase().includes("expired");
+    return NextResponse.redirect(
+      `${origin}/auth?error=${expired ? "token_expired" : "otp_invalid"}`
+    );
   }
 
-  return NextResponse.redirect(`${origin}/auth`);
+  return NextResponse.redirect(`${origin}/auth?error=missing_params`);
 }

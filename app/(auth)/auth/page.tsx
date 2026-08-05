@@ -2,12 +2,25 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SignupForm } from "@/components/signup-form"
 
+const ERROR_MESSAGES: Record<string, string> = {
+  otp_invalid:
+    "The confirmation link is invalid or has already been used.",
+  token_expired:
+    "The link has expired. Please request a new one.",
+  auth_code_exchange:
+    "Something went wrong while signing you in. Please try again.",
+  missing_params:
+    "The link you followed is incomplete. Please try again.",
+  invalid_recovery:
+    "This password reset link is invalid or has expired. Please request a new one.",
+};
+
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string }>
+  searchParams: Promise<{ mode?: string; error?: string }>
 }) {
-  const { mode } = await searchParams
+  const { mode, error } = await searchParams
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -22,6 +35,9 @@ export default async function SignupPage({
       <div className="w-full max-w-sm md:max-w-4xl">
         <SignupForm
           initialMode={mode === "signin" ? "signin" : "signup"}
+          errorMessage={
+            error ? ERROR_MESSAGES[error] ?? "Something went wrong. Please try again." : undefined
+          }
         />
       </div>
     </div>

@@ -10,6 +10,7 @@ import {
 import { verifySession } from "@/lib/dal";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { SITE_URL } from "@/lib/supabase/config";
 
 export type AuthState = {
   error: string | null;
@@ -29,7 +30,7 @@ async function getOrigin() {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
-  return siteUrl ?? (host ? `${protocol}://${host}` : "http://localhost:3000");
+  return siteUrl ?? (host ? `${protocol}://${host}` : SITE_URL);
 }
 
 export async function signUp(
@@ -150,7 +151,10 @@ export async function signInWithGoogle() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${origin}/auth/callback` },
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+      queryParams: { prompt: "select_account" },
+    },
   });
 
   if (error) throw new Error(error.message);
