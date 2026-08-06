@@ -15,12 +15,17 @@ const ERROR_MESSAGES: Record<string, string> = {
     "This password reset link is invalid or has expired. Please request a new one.",
 };
 
+const SUCCESS_MESSAGES: Record<string, string> = {
+  password_updated:
+    "Password updated. Sign in with your new password.",
+};
+
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; error?: string }>
+  searchParams: Promise<{ mode?: string; error?: string; message?: string }>
 }) {
-  const { mode, error } = await searchParams
+  const { mode, error, message } = await searchParams
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -37,6 +42,9 @@ export default async function SignupPage({
           initialMode={mode === "signin" ? "signin" : "signup"}
           errorMessage={
             error ? ERROR_MESSAGES[error] ?? "Something went wrong. Please try again." : undefined
+          }
+          successMessage={
+            message ? SUCCESS_MESSAGES[message] : undefined
           }
         />
       </div>

@@ -171,10 +171,12 @@ function ModeForm({
   mode,
   onSwitchMode,
   initialError,
+  initialSuccess,
 }: {
   mode: Mode;
   onSwitchMode: (next: Mode) => void;
   initialError?: string;
+  initialSuccess?: string;
 }) {
   const isSignUp = mode === "signup";
   const isForgot = mode === "forgot";
@@ -193,10 +195,13 @@ function ModeForm({
     initialAuthState,
   );
   const [dismissed, setDismissed] = useState(false);
+  const [dismissSuccess, setDismissSuccess] = useState(false);
 
   const showConfirmation = !!state?.message && !state?.error;
   const showError = !!state?.error;
   const banner = initialError && !dismissed ? initialError : null;
+  const successBanner =
+    initialSuccess && !dismissSuccess ? initialSuccess : null;
 
   if (showConfirmation) {
     return (
@@ -227,6 +232,21 @@ function ModeForm({
                 : "Enter your email below to sign in"}
           </p>
         </div>
+        {successBanner && (
+          <FieldDescription className="rounded-md border border-success/30 bg-success/5 p-3 text-success">
+            <span className="flex items-center justify-between gap-2 text-left">
+              {successBanner}
+              <button
+                type="button"
+                onClick={() => setDismissSuccess(true)}
+                aria-label="Dismiss"
+                className="shrink-0 text-foreground-muted transition-colors hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </span>
+          </FieldDescription>
+        )}
         {banner && (
           <FieldDescription className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-destructive">
             <span className="flex items-center justify-between gap-2 text-left">
@@ -397,11 +417,13 @@ function ModeForm({
 export function SignupForm({
   initialMode = "signup",
   errorMessage,
+  successMessage,
   className,
   ...props
 }: React.ComponentProps<"div"> & {
   initialMode?: "signin" | "signup";
   errorMessage?: string;
+  successMessage?: string;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
 
@@ -414,6 +436,7 @@ export function SignupForm({
             mode={mode}
             onSwitchMode={setMode}
             initialError={errorMessage}
+            initialSuccess={successMessage}
           />
           <div className="relative hidden items-center justify-center bg-card p-8 md:flex">
             <img

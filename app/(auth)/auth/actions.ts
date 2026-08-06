@@ -220,7 +220,8 @@ export async function updatePassword(
     };
   }
 
-  redirect("/app");
+  await supabase.auth.signOut();
+  redirect("/auth?mode=signin&message=password_updated");
 }
 
 export async function signOut() {
