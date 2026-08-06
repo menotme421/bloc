@@ -27,10 +27,15 @@ export type AuthState = {
 
 async function getOrigin() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (siteUrl) {
+    return siteUrl;
+  }
+  if (process.env.NODE_ENV === "production") {
+    return SITE_URL;
+  }
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
-  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
-  return siteUrl ?? (host ? `${protocol}://${host}` : SITE_URL);
+  return host ? `http://${host}` : SITE_URL;
 }
 
 export async function signUp(
@@ -128,9 +133,18 @@ export async function signIn(
         errorType: "email_not_confirmed",
       };
     }
+    if (
+      error.code === "over_request_rate_limit" ||
+      error.code === "over_email_send_rate_limit"
+    ) {
+      return {
+        error: "Too many attempts. Please wait a few minutes and try again.",
+        errorType: "unexpected",
+      };
+    }
+    console.error("[auth] signIn failed", error.code, error.message);
     return {
-      error:
-        "Sorry, unexpected error. Contact support@blocapps.com for help.",
+      error: error.message,
       errorType: "unexpected",
     };
   }
@@ -182,10 +196,19 @@ export async function resetPassword(
   });
 
   if (error) {
-    return {
-      error:
-        "Sorry, unexpected error. Contact support@blocapps.com for help.",
-    };
+    console.error("[auth] resetPasswordForEmail failed", {
+      code: error.code,
+      message: error.message,
+    });
+    if (
+      error.code === "over_request_rate_limit" ||
+      error.code === "over_email_send_rate_limit"
+    ) {
+      return {
+        error: "Too many attempts. Please wait a few minutes and try again.",
+      };
+    }
+    return { error: error.message };
   }
 
   return {
@@ -214,10 +237,19 @@ export async function updatePassword(
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    return {
-      error:
-        "Sorry, unexpected error. Contact support@blocapps.com for help.",
-    };
+    console.error("[auth] updateUser(password) failed", {
+      code: error.code,
+      message: error.message,
+    });
+    if (
+      error.code === "over_request_rate_limit" ||
+      error.code === "over_email_send_rate_limit"
+    ) {
+      return {
+        error: "Too many attempts. Please wait a few minutes and try again.",
+      };
+    }
+    return { error: error.message };
   }
 
   await supabase.auth.signOut();
