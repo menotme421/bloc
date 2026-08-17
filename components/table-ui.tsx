@@ -295,6 +295,7 @@ export function TableUI({
   }, [hovered, refreshTableRect]);
 
   const toggleHeaderRow = React.useCallback(() => {
+    if (!editor) return;
     const a = tableAnchorRef.current;
     const ref = a ? getHoverTable(editor, a.pos) : null;
     const merged = ref ? hasMergedCells(ref) : false;
@@ -306,6 +307,7 @@ export function TableUI({
   }, [editor, tableAnchorRef]);
 
   const toggleHeaderCol = React.useCallback(() => {
+    if (!editor) return;
     const a = tableAnchorRef.current;
     if (!a) return;
     const ref = getHoverTable(editor, a.pos);
@@ -334,6 +336,7 @@ React.useEffect(() => {
     };
 
     function growTable(rowsToAdd: number, colsToAdd: number) {
+      if (!editor) return;
       const a = tableAnchorRef.current;
       if (!a || (rowsToAdd <= 0 && colsToAdd <= 0)) return;
       let ref = getHoverTable(editor, a.pos);
@@ -355,6 +358,7 @@ React.useEffect(() => {
     }
 
     function cornerStart(e: PointerEvent) {
+      if (!editor) return;
       if (!hovered || !tableAnchorRef.current) return;
       e.preventDefault();
       e.stopPropagation();
@@ -399,6 +403,7 @@ React.useEffect(() => {
     }
 
     function addRowBeforeAt(row: number) {
+      if (!editor) return;
       const a = tableAnchorRef.current;
       if (!a) return;
       const ref = getHoverTable(editor, a.pos);
@@ -409,6 +414,7 @@ React.useEffect(() => {
     }
 
     function addRowAfterAt(row: number) {
+      if (!editor) return;
       const a = tableAnchorRef.current;
       if (!a) return;
       const ref = getHoverTable(editor, a.pos);
@@ -419,6 +425,7 @@ React.useEffect(() => {
     }
 
     function deleteRowAt(row: number) {
+      if (!editor) return;
       const a = tableAnchorRef.current;
       if (!a) return;
       const ref = getHoverTable(editor, a.pos);
@@ -434,6 +441,7 @@ React.useEffect(() => {
     }
 
     function addColBeforeAt(col: number) {
+      if (!editor) return;
       const a = tableAnchorRef.current;
       if (!a) return;
       const ref = getHoverTable(editor, a.pos);
@@ -444,6 +452,7 @@ React.useEffect(() => {
     }
 
     function addColAfterAt(col: number) {
+      if (!editor) return;
       const a = tableAnchorRef.current;
       if (!a) return;
       const ref = getHoverTable(editor, a.pos);

@@ -152,9 +152,9 @@ export function NoteEditor({
           onNodeChange: () => {},
         }),
         Placeholder.configure({
-          placeholder: ({ node }) =>
-            node.parent?.type.name === "tableCell" ||
-            node.parent?.type.name === "tableHeader"
+          placeholder: ({ editor, pos }) =>
+            editor.state.doc.resolve(pos).parent.type.name === "tableCell" ||
+            editor.state.doc.resolve(pos).parent.type.name === "tableHeader"
               ? ""
               : "Type / for commands…",
           emptyNodeClass: "is-empty",
