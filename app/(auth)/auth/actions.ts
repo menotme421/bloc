@@ -26,12 +26,8 @@ export type AuthState = {
 };
 
 async function getOrigin() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  if (siteUrl) {
-    return siteUrl;
-  }
   if (process.env.NODE_ENV === "production") {
-    return SITE_URL;
+    return process.env.NEXT_PUBLIC_SITE_URL ?? SITE_URL;
   }
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");

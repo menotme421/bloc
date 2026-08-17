@@ -34,8 +34,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isAuthed = !!user;
-  const isProtected =
-    pathname.startsWith("/app") || pathname.startsWith("/notes");
+  const isProtected = pathname.startsWith("/app");
   const isAuthRoute = pathname.startsWith("/auth");
   const isCallback = pathname.startsWith("/auth/callback");
   const isLanding = pathname === "/";
@@ -56,5 +55,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/notes/:path*", "/auth/:path*", "/"],
+  matcher: ["/app/:path*", "/auth/:path*", "/"],
 };

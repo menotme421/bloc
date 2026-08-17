@@ -38,3 +38,23 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = passwordConfirmationSchema;
+
+export const noteSchema = z.object({
+  title: z
+    .string({ error: "Title is required." })
+    .trim()
+    .max(200, { error: "Title must be at most 200 characters." })
+    .default(""),
+  content: z
+    .string({ error: "Content is required." })
+    .max(100_000, { error: "Content is too long." })
+    .default(""),
+});
+
+export const createNoteSchema = noteSchema.extend({
+  id: z.uuid({ error: "Invalid note id." }).optional(),
+});
+
+export const updateNoteSchema = noteSchema.extend({
+  id: z.uuid({ error: "Invalid note." }),
+});
