@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Color from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
+import Subscript from "@tiptap/extension-subscript";
+import Superscript from "@tiptap/extension-superscript";
+import { TextStyle } from "@tiptap/extension-text-style";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
@@ -86,6 +91,9 @@ import { setSyncStatus } from "@/lib/note-status";
 import type { Note } from "@/lib/notes";
 import { SlashMenu, type SlashMenuController } from "@/components/slash-menu";
 import { TableUI } from "@/components/table-ui";
+import { BubbleMenu } from "@/components/bubble-menu";
+import { Resource } from "@/components/resource-node";
+import { uploadResourceFile } from "@/lib/resource-upload";
 
 const SAVE_DEBOUNCE_MS = 800;
 const SYNC_MAX_ROUNDS = 3;
@@ -110,11 +118,20 @@ export function NoteEditor({
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   const slashControllerRef = React.useRef<SlashMenuController | null>(null);
   const tableAnchorRef = React.useRef<{ pos: number } | null>(null);
+  const editorRef = React.useRef<Editor | null>(null);
 
   const editor = useEditor(
     {
       extensions: [
-        StarterKit.configure({ codeBlock: false }),
+        StarterKit.configure({
+          codeBlock: false,
+          link: { openOnClick: false },
+        }),
+        TextStyle,
+        Color,
+        Highlight.configure({ multicolor: true }),
+        Subscript,
+        Superscript,
         TaskList,
         TaskItem,
         CodeBlockLowlight.configure({
@@ -128,6 +145,7 @@ export function NoteEditor({
         }),
         ColoredTableCell,
         ColoredTableHeader,
+        Resource.configure({ userId }),
         DragHandle.configure({
           render: () => {
             const element = document.createElement("div");
@@ -169,8 +187,42 @@ export function NoteEditor({
         },
         handleKeyDown: (_view, event) =>
           slashControllerRef.current?.onKeyDown(event) ?? false,
+        handlePaste: (_view, event) => {
+          const items = Array.from(event.clipboardData?.items ?? []);
+          const files = items
+            .filter(
+              (item) => item.kind === "file" && item.type.startsWith("image/")
+            )
+            .map((item) => item.getAsFile())
+            .filter((file): file is File => file !== null);
+          if (files.length === 0) return false;
+          event.preventDefault();
+          const file = files[0];
+          const insertPos = _view.state.selection.from;
+          void uploadResourceFile(file, userId)
+            .then((url) => {
+              editorRef.current
+                ?.chain()
+                .focus()
+                .insertContentAt(insertPos, {
+                  type: "resource",
+                  attrs: {
+                    src: url,
+                    name: file.name,
+                    type: file.type || "application/octet-stream",
+                    size: file.size,
+                  },
+                })
+                .run();
+            })
+            .catch((e) => {
+              console.error("[paste] upload failed", e);
+            });
+          return true;
+        },
       },
       onCreate: ({ editor: created }) => {
+        editorRef.current = created;
         handleResolve(created);
       },
     },
@@ -355,6 +407,7 @@ export function NoteEditor({
         />
         <div ref={contentRef} className="relative">
           <SlashMenu editor={editor} controllerRef={slashControllerRef} />
+          <BubbleMenu editor={editor} userId={userId} />
           <TableUI
             editor={editor}
             containerRef={contentRef}

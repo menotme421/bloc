@@ -12,6 +12,7 @@ import {
   ListTodoIcon,
   MinusIcon,
   QuoteIcon,
+  ShapesIcon,
   TableIcon,
   TypeIcon,
 } from "lucide-react";
@@ -169,6 +170,20 @@ export const SLASH_ITEMS: SlashItem[] = [
         .focus()
         .deleteRange({ from, to })
         .setHorizontalRule()
+        .run();
+    },
+  },
+  {
+    id: "resources",
+    label: "Resources",
+    aliases: ["resource", "file", "files", "upload", "attachment", "image", "media"],
+    icon: ShapesIcon,
+    apply: (editor, from, to) => {
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from, to })
+        .insertContent({ type: "resource" })
         .run();
     },
   },
