@@ -29,6 +29,23 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // Handle PKCE code at any route (e.g. https://blocapps.com/?code=... or http://192.168.1.8:3000/?code=...)
+  // Supabase may redirect to Site URL (live) even when signing in on LAN IP if
+  // that IP isn't in Supabase → Auth → URL Configuration → Redirect URLs.
+  // Exchanging here prevents landing on /?code=... stuck without session.
+  const code = request.nextUrl.searchParams.get("code");
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      // Strip ?code and go to /app preserving original host (LAN IP or live)
+      const url = request.nextUrl.clone();
+      url.searchParams.delete("code");
+      url.pathname = "/app";
+      return NextResponse.redirect(url);
+    }
+    // If exchange fails, fall through to callback route handling
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();

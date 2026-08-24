@@ -1,13 +1,9 @@
 "use client";
 
-import { Menu} from "lucide-react";
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { Menu, XIcon } from "lucide-react";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
@@ -17,14 +13,6 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 interface MenuItem {
@@ -66,8 +54,8 @@ const Navbar1 = ({
   },
   menu = [
     { title: "About", url: "#about" },
-    { title: "Feature", url: "#features",},
-    { title: "Pricing",url: "#pricing",},
+    { title: "Feature", url: "#features" },
+    { title: "Pricing", url: "#pricing" },
   ],
   auth = {
     login: { title: "Sign in", url: "/auth?mode=signin" },
@@ -75,15 +63,39 @@ const Navbar1 = ({
   },
   className,
 }: Navbar1Props) => {
+  const [open, setOpen] = React.useState(false);
+  const router = useRouter();
+
+  const handleNavClick = (url: string) => {
+    setOpen(false);
+    // small delay to let drawer close animation start, then client navigation (no full reload)
+    setTimeout(() => {
+      if (url.startsWith("#")) {
+        const el = document.getElementById(url.slice(1));
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          try {
+            window.history.pushState(null, "", url);
+          } catch {}
+          return;
+        }
+      }
+      try {
+        router.push(url);
+      } catch {
+        window.location.href = url;
+      }
+    }, 150);
+  };
+
   return (
-    <section className={cn("py-4", className)}>
-      <div className="container-page">
+    <section className={cn("relative isolate py-4 pt-[max(1rem,env(safe-area-inset-top))] ", className)}>
+      <div className="mx-auto max-w-[1440px] px-5 md:px-10">
         {/* Desktop Menu */}
         <nav className="hidden items-center justify-between lg:flex">
           <div className="flex items-center gap-6">
-            {/* Logo */}
             <a href="/" className="flex items-center gap-2">
-              <span className="text-logo ">Bloc.</span>
+              <span className="text-2xl font-black tracking-tight">Bloc.</span>
             </a>
             <div className="flex items-center">
               <NavigationMenu>
@@ -94,55 +106,74 @@ const Navbar1 = ({
             </div>
           </div>
           <div className="flex gap-2">
-            <div className="flex gap-2">
-              <a href={auth.login.url} className="btn btn-secondary btn-sm">{auth.login.title}</a>
-              <a href={auth.signup.url} className="btn btn-primary btn-sm">{auth.signup.title}</a>
-            </div>
+            <Button variant="secondary" size="sm" asChild>
+              <a href={auth.login.url}>{auth.login.title}</a>
+            </Button>
+            <Button size="sm" asChild>
+              <a href={auth.signup.url}>{auth.signup.title}</a>
+            </Button>
           </div>
         </nav>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu — simple fixed drawer, no Radix portal (reliable on IP/tunnel) */}
         <div className="block lg:hidden">
           <div className="flex items-center justify-between">
-            {/* Logo */}
             <a href="/" className="flex items-center gap-2">
-              <span className="text-logo">Bloc.</span>
+              <span className="text-2xl font-black tracking-tight">Bloc.</span>
             </a>
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="focus-visible:border-transparent focus-visible:ring-0"
-                >
-                  <Menu className="size-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>
-                    <a href={logo.url} className="flex items-center gap-2">
-                      <span className="text-logo">Bloc.</span>
-                    </a>
-                  </SheetTitle>
-                </SheetHeader>
-                <div className="flex flex-col gap-6 p-4">
-                  <Accordion
-                    type="single"
-                    collapsible
-                    className="flex w-full flex-col gap-4"
-                  >
-                    {menu.map((item) => renderMobileMenuItem(item))}
-                  </Accordion>
-
-                  <div className="flex flex-col gap-3">
-                    <a href={auth.login.url} className="btn btn-secondary">{auth.login.title}</a>
-                    <a href={auth.signup.url} className="btn btn-primary">{auth.signup.title}</a>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+            <button
+              type="button"
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
+              onClick={() => setOpen((v) => !v)}
+              className="relative z-10 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border bg-background touch-auto select-auto focus-visible:border-transparent focus-visible:ring-0 active:translate-y-px"
+              style={{ WebkitUserSelect: "auto", userSelect: "auto", touchAction: "auto", WebkitTouchCallout: "default" } as React.CSSProperties}
+            >
+              <Menu className="size-4 pointer-events-none" />
+            </button>
           </div>
+
+          {open && (
+            <>
+               <div
+                className="fixed inset-0 z-40 bg-black/10 backdrop-blur-xs touch-manipulation"
+                onClick={() => setOpen(false)}
+                aria-hidden="true"
+              />
+              <div className="fixed inset-y-0 right-0 z-50 flex w-3/4 max-w-sm flex-col gap-4 bg-popover p-4 shadow-lg overflow-y-auto border-l touch-manipulation">
+                <div className="flex items-center justify-between">
+                  <a href={logo.url} className="flex items-center gap-2" onClick={() => setOpen(false)}>
+                    <span className="text-2xl font-black tracking-tight">Bloc.</span>
+                  </a>
+                  <Button type="button" variant="ghost" size="icon-sm" onClick={() => setOpen(false)} aria-label="Close menu" className="min-h-[44px] min-w-[44px] touch-manipulation">
+                    <XIcon className="size-4 pointer-events-none" />
+                  </Button>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {menu.map((item) => (
+                    <button
+                      key={item.title}
+                      type="button"
+                      onClick={() => handleNavClick(item.url)}
+                      className="flex min-h-[44px] w-full items-center rounded-md px-3 py-3 text-left text-sm font-semibold hover:bg-muted"
+                    >
+                      {item.title}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-3 pt-2">
+                  <Button type="button" variant="secondary" onClick={() => handleNavClick(auth.login.url)} className="w-full min-h-[44px] touch-manipulation">
+                    {auth.login.title}
+                  </Button>
+                  <Button type="button" onClick={() => handleNavClick(auth.signup.url)} className="w-full min-h-[44px] touch-manipulation">
+                    {auth.signup.title}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </section>
@@ -169,36 +200,11 @@ const renderMenuItem = (item: MenuItem) => {
     <NavigationMenuItem key={item.title}>
       <NavigationMenuLink
         href={item.url}
-        className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-nav transition-colors hover:bg-muted hover:text-accent-foreground"
+        className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm transition-colors hover:bg-muted hover:text-accent-foreground"
       >
         {item.title}
       </NavigationMenuLink>
     </NavigationMenuItem>
-  );
-};
-
-const renderMobileMenuItem = (item: MenuItem) => {
-  if (item.items) {
-    return (
-      <AccordionItem key={item.title} value={item.title} className="border-b-0">
-        <AccordionTrigger className="text-nav py-0 hover:no-underline">
-          {item.title}
-        </AccordionTrigger>
-        <AccordionContent className="mt-2">
-          {item.items.map((subItem) => (
-            <SubMenuLink key={subItem.title} item={subItem} />
-          ))}
-        </AccordionContent>
-      </AccordionItem>
-    );
-  }
-
-  return (
-    <SheetClose asChild>
-      <a key={item.title} href={item.url} className="text-nav font-semibold">
-        {item.title}
-      </a>
-    </SheetClose>
   );
 };
 
@@ -211,11 +217,7 @@ const SubMenuLink = ({ item }: { item: MenuItem }) => {
       <div className="text-foreground">{item.icon}</div>
       <div>
         <div className="text-sm font-semibold">{item.title}</div>
-        {item.description && (
-          <p className="text-nav">
-            {item.description}
-          </p>
-        )}
+        {item.description && <p className="text-sm">{item.description}</p>}
       </div>
     </a>
   );

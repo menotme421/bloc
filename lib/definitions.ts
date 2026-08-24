@@ -39,6 +39,12 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = passwordConfirmationSchema;
 
+export const displayNameSchema = z
+  .string({ error: "Display name is required." })
+  .trim()
+  .min(1, { error: "Display name is required." })
+  .max(50, { error: "Display name must be at most 50 characters." });
+
 export const noteSchema = z.object({
   title: z
     .string({ error: "Title is required." })
@@ -49,6 +55,12 @@ export const noteSchema = z.object({
     .string({ error: "Content is required." })
     .max(100_000, { error: "Content is too long." })
     .default(""),
+  tag: z
+    .string()
+    .trim()
+    .max(50, { error: "Tag must be at most 50 characters." })
+    .nullable()
+    .default(null),
 });
 
 export const createNoteSchema = noteSchema.extend({

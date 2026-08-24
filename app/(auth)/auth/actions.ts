@@ -26,12 +26,24 @@ export type AuthState = {
 };
 
 async function getOrigin() {
-  if (process.env.NODE_ENV === "production") {
-    return process.env.NEXT_PUBLIC_SITE_URL ?? SITE_URL;
-  }
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
-  return host ? `http://${host}` : SITE_URL;
+  if (host) {
+    // Respect the actual request host (LAN IP 192.168.x.x, localhost, or live domain)
+    // instead of hardcoding SITE_URL in production — fixes redirect to blocapps.com
+    // when testing on http://192.168.1.8:3000 via start:lan.
+    const forwardedProto = h.get("x-forwarded-proto");
+    const proto =
+      forwardedProto ??
+      (host.includes("localhost") ||
+      host.startsWith("192.168.") ||
+      host.startsWith("10.") ||
+      host.startsWith("172.")
+        ? "http"
+        : "https");
+    return `${proto}://${host}`;
+  }
+  return process.env.NEXT_PUBLIC_SITE_URL ?? SITE_URL;
 }
 
 export async function signUp(

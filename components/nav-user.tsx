@@ -5,9 +5,9 @@ import { ChevronsUpDown, LogOut, Settings2, Sparkles } from "lucide-react"
 import { signOut } from "@/app/(auth)/auth/actions"
 import {
   Avatar,
-  AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
+import ProfileAvatar from "@/components/profile-avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,16 +30,6 @@ export type NavUserData = {
   avatar?: string | null
 }
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
-}
-
 export function NavUser({ user }: { user: NavUserData }) {
   const { isMobile } = useSidebar()
 
@@ -52,15 +42,13 @@ export function NavUser({ user }: { user: NavUserData }) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
+              <Avatar className="h-8 w-8 rounded-full">
                 <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                <AvatarFallback className="rounded-lg">
-                  {getInitials(user.name)}
-                </AvatarFallback>
+                <ProfileAvatar name={user.name} size={32} />
               </Avatar>
               <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate text-label">{user.name}</span>
-                <span className="truncate text-caption">{user.email}</span>
+                <span className="truncate text-sm">{user.name}</span>
+                <span className="truncate text-xs text-muted-foreground">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -73,15 +61,13 @@ export function NavUser({ user }: { user: NavUserData }) {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
+                <Avatar className="h-8 w-8 rounded-full">
                   <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">
-                    {getInitials(user.name)}
-                  </AvatarFallback>
+                  <ProfileAvatar name={user.name} size={32} />
                 </Avatar>
               <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate text-label">{user.name}</span>
-                <span className="truncate text-caption">{user.email}</span>
+                <span className="truncate text-sm">{user.name}</span>
+                <span className="truncate text-xs text-muted-foreground">{user.email}</span>
               </div>
               </div>
             </DropdownMenuLabel>

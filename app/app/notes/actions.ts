@@ -14,6 +14,7 @@ export async function createNote(input: {
   id?: string;
   title: string;
   content: string;
+  tag?: string | null;
 }): Promise<NoteActionResult> {
   const { userId } = await verifySession();
 
@@ -28,7 +29,7 @@ export async function createNote(input: {
   const { data, error } = await supabase
     .from("notes")
     .insert({ id, user_id: userId, ...note })
-    .select("id, title, content, created_at, updated_at")
+    .select("id, title, content, tag, created_at, updated_at")
     .single();
 
   if (error) {
@@ -44,6 +45,7 @@ export async function updateNote(input: {
   id: string;
   title: string;
   content: string;
+  tag?: string | null;
 }): Promise<NoteActionResult> {
   const { userId } = await verifySession();
 
@@ -60,7 +62,7 @@ export async function updateNote(input: {
     .update(patch)
     .eq("id", id)
     .eq("user_id", userId)
-    .select("id, title, content, created_at, updated_at")
+    .select("id, title, content, tag, created_at, updated_at")
     .maybeSingle();
 
   if (error) {
@@ -93,4 +95,19 @@ export async function deleteNote(id: string): Promise<NoteActionResult> {
 
   revalidatePath("/app/notes");
   return { ok: true };
+}
+
+export async function listNotes(): Promise<Note[]> {
+  const { userId } = await verifySession();
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("notes")
+    .select("id, title, content, tag, created_at, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+  if (error) {
+    console.error("[notes] listNotes failed", error.message);
+    return [];
+  }
+  return (data ?? []) as Note[];
 }

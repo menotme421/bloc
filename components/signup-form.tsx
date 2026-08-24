@@ -1,5 +1,6 @@
 ﻿"use client"
-import { useState, useTransition, useActionState } from "react"
+import { useState, useTransition, useActionState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   signUp,
@@ -10,6 +11,8 @@ import {
 } from "@/app/(auth)/auth/actions";
 import { Eye, EyeOff, CircleCheck, Circle, X, MailCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Field,
   FieldDescription,
@@ -47,7 +50,7 @@ function PasswordInputField({
         {label}
       </FieldLabel>
       <div className="relative">
-        <input
+        <Input
           id={id}
           type={showPassword ? "text" : "password"}
           name={name}
@@ -55,13 +58,13 @@ function PasswordInputField({
           onChange={(e) => onChange(e.target.value)}
           autoComplete={autoComplete}
           required
-          className="input-field input-field-card w-full pr-10"
+          className="pr-10"
         />
         <button
           type="button"
           onClick={onToggleShow}
           aria-label={showPassword ? `Hide ${label}` : `Show ${label}`}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted transition-colors hover:text-foreground"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
         >
           {showPassword ? (
             <EyeOff className="size-5" />
@@ -98,7 +101,7 @@ function PasswordChecker({
           key={check.label}
           className={cn(
             "flex items-center gap-1.5 text-sm",
-            check.met ? "text-success" : "text-foreground-muted"
+            check.met ? "text-success" : "text-muted-foreground"
           )}
         >
           {check.met ? (
@@ -142,27 +145,28 @@ function EmailConfirmationView({
       <div className="flex size-14 items-center justify-center rounded-full bg-primary/10">
         <MailCheck className="size-7 text-primary" />
       </div>
-      <h1 className="text-card-title text-balance">Check your email</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-balance">Check your email</h1>
       {mode === "signup" ? (
-        <p className="text-body text-balance text-foreground-muted">
+        <p className="text-lg text-balance text-muted-foreground">
           We sent a confirmation link to{" "}
           <span className="font-medium text-foreground">{email}</span>. Click
           it to activate your account — you&apos;ll go straight to the app.
         </p>
       ) : (
-        <p className="text-body text-balance text-foreground-muted">
+        <p className="text-lg text-balance text-muted-foreground">
           We sent a password reset link to{" "}
           <span className="font-medium text-foreground">{email}</span>. Click
           it to choose a new password.
         </p>
       )}
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        className="w-full"
         onClick={onBackToSignIn}
-        className="btn btn-secondary w-full"
       >
         Back to sign in
-      </button>
+      </Button>
     </div>
   );
 }
@@ -217,14 +221,14 @@ function ModeForm({
     <form action={formAction} className="p-6 md:p-8">
       <FieldGroup>
         <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-card-title text-balance">
+          <h1 className="text-2xl font-bold tracking-tight text-balance">
             {isForgot
               ? "Reset your password"
               : isSignUp
                 ? "Create your account"
                 : "Welcome back"}
           </h1>
-          <p className="text-body text-balance text-foreground-muted">
+          <p className="text-lg text-balance text-muted-foreground">
             {isForgot
               ? "Enter your email below and we'll send you a reset link"
               : isSignUp
@@ -240,7 +244,7 @@ function ModeForm({
                 type="button"
                 onClick={() => setDismissSuccess(true)}
                 aria-label="Dismiss"
-                className="shrink-0 text-foreground-muted transition-colors hover:text-foreground"
+                className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <X className="size-4" />
               </button>
@@ -255,7 +259,7 @@ function ModeForm({
                 type="button"
                 onClick={() => setDismissed(true)}
                 aria-label="Dismiss"
-                className="shrink-0 text-foreground-muted transition-colors hover:text-foreground"
+                className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <X className="size-4" />
               </button>
@@ -266,7 +270,7 @@ function ModeForm({
           <FieldLabel htmlFor="email" className="text-lg leading-normal">
             Email
           </FieldLabel>
-          <input
+          <Input
             id="email"
             type="email"
             name="email"
@@ -274,7 +278,6 @@ function ModeForm({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="example@example.com"
             required
-            className="input-field input-field-card"
           />
           {!isForgot && (
             <FieldDescription>
@@ -339,9 +342,9 @@ function ModeForm({
               )}
             </FieldDescription>
           )}
-          <button
+          <Button
             type="submit"
-            className="btn btn-primary w-full"
+            className="w-full"
             disabled={isPending}
           >
             {isPending
@@ -351,7 +354,7 @@ function ModeForm({
                 : isSignUp
                   ? "Create Account"
                   : "Sign In"}
-          </button>
+          </Button>
         </Field>
         {!isForgot && (
           <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
@@ -360,11 +363,12 @@ function ModeForm({
         )}
         {!isForgot && (
           <Field>
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              className="w-full gap-2"
               disabled={isGooglePending}
               onClick={() => startGoogle(() => signInWithGoogle())}
-              className="btn btn-secondary w-full gap-2"
             >
               <svg
                 className="size-4 shrink-0"
@@ -379,17 +383,18 @@ function ModeForm({
               {isGooglePending
                 ? "Redirecting..."
                 : "Continue with Google"}
-            </button>
+            </Button>
           </Field>
         )}
-        <FieldDescription className="text-center">
+        <div className="text-center text-sm leading-normal font-normal text-muted-foreground">
           {isForgot ? (
             <>
               Remembered it?{" "}
               <button
                 type="button"
                 onClick={() => onSwitchMode("signin")}
-                className="text-sm text-primary"
+                className="relative z-10 inline-flex min-h-[44px] items-center px-1 text-sm font-medium text-primary underline-offset-4 hover:underline touch-auto select-auto cursor-pointer"
+                style={{ WebkitUserSelect: "auto", userSelect: "auto", touchAction: "auto" } as React.CSSProperties}
               >
                 Back to sign in
               </button>
@@ -399,16 +404,15 @@ function ModeForm({
               {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
               <button
                 type="button"
-                onClick={() =>
-                  onSwitchMode(isSignUp ? "signin" : "signup")
-                }
-                className="text-sm text-primary"
+                onClick={() => onSwitchMode(isSignUp ? "signin" : "signup")}
+                className="relative z-10 inline-flex min-h-[44px] items-center px-1 text-sm font-medium text-primary underline-offset-4 hover:underline touch-auto select-auto cursor-pointer"
+                style={{ WebkitUserSelect: "auto", userSelect: "auto", touchAction: "auto" } as React.CSSProperties}
               >
                 {isSignUp ? "Sign in" : "Sign up"}
               </button>
             </>
           )}
-        </FieldDescription>
+        </div>
       </FieldGroup>
     </form>
   );
@@ -425,7 +429,35 @@ export function SignupForm({
   errorMessage?: string;
   successMessage?: string;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>(initialMode);
+
+  // Keep URL in sync so /auth?mode=signin deep-links work and refresh doesn't revert to signup
+  // and so "Sign in → sign up" toggle doesn't appear stuck
+  const syncModeToUrl = (next: Mode) => {
+    setMode(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "signup") {
+      params.delete("mode");
+    } else {
+      params.set("mode", next);
+    }
+    const qs = params.toString();
+    router.replace(`/auth${qs ? `?${qs}` : ""}`, { scroll: false });
+  };
+
+  // If user lands via direct /auth?mode=signin link (e.g. Navbar Sign in), respect it even after client toggle stale
+  useEffect(() => {
+    const urlMode = searchParams.get("mode");
+    if (urlMode === "signin" || urlMode === "signup") {
+      if (urlMode !== mode && mode !== "forgot") {
+        // only auto-sync if not in forgot flow to avoid fighting user
+        setMode(urlMode as Mode);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -434,7 +466,7 @@ export function SignupForm({
           <ModeForm
             key={mode}
             mode={mode}
-            onSwitchMode={setMode}
+            onSwitchMode={syncModeToUrl}
             initialError={errorMessage}
             initialSuccess={successMessage}
           />

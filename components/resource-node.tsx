@@ -303,7 +303,7 @@ function ResourceView(props: NodeViewProps) {
             <p className="truncate text-sm font-medium text-foreground">
               {name}
             </p>
-            <p className="text-xs text-foreground-muted">
+            <p className="text-xs text-muted-foreground">
               {formatSize(size)}
               {type ? ` \u00b7 ${type}` : ""}
             </p>
@@ -370,14 +370,14 @@ function ResourceView(props: NodeViewProps) {
         />
         {busy ? (
           <>
-            <Loader2Icon className="size-5 animate-spin text-foreground-muted" />
-            <p className="text-sm text-foreground-muted">{"Uploading\u2026"}</p>
+            <Loader2Icon className="size-5 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">{"Uploading\u2026"}</p>
           </>
         ) : (
           <>
-            <ShapesIcon className="size-5 text-foreground-muted" />
+            <ShapesIcon className="size-5 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">Upload a resource</p>
-            <p className="text-xs text-foreground-muted">
+            <p className="text-xs text-muted-foreground">
               Drop a file here or click to browse
             </p>
           </>

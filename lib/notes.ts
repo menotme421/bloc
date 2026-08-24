@@ -8,11 +8,12 @@ export type Note = {
   id: string;
   title: string;
   content: string;
+  tag: string | null;
   created_at: string;
   updated_at: string;
 };
 
-const NOTE_COLUMNS = "id, title, content, created_at, updated_at";
+const NOTE_COLUMNS = "id, title, content, tag, created_at, updated_at";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

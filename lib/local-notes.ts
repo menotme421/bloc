@@ -4,6 +4,8 @@ const STORAGE_PREFIX = "bloc:notes:";
 const OUTBOX_SUFFIX = ":outbox";
 const DELETED_SUFFIX = ":deleted";
 const LAST_SUFFIX = ":last";
+const RECENT_SUFFIX = ":recent";
+const RECENT_OPENED_CAP = 50;
 
 const NOTES_UPDATED_EVENT = "bloc:notes:updated";
 
@@ -32,12 +34,6 @@ function notifyUpdated() {
 
 export const EMPTY_NOTES: Note[] = [];
 
-let recentCache: { userId: string; version: number; notes: Note[] } = {
-  userId: "",
-  version: -1,
-  notes: EMPTY_NOTES,
-};
-
 let noteCache: { userId: string; id: string; version: number; note: Note | null } = {
   userId: "",
   id: "",
@@ -45,20 +41,69 @@ let noteCache: { userId: string; id: string; version: number; note: Note | null 
   note: null,
 };
 
-export function getRecentNotesSnapshot(userId: string, limit = 8): Note[] {
+let allNotesCache: { userId: string; version: number; notes: Note[] } = {
+  userId: "",
+  version: -1,
+  notes: EMPTY_NOTES,
+};
+
+let recentOpenedCache: {
+  userId: string;
+  limit: number;
+  version: number;
+  notes: Note[];
+} = {
+  userId: "",
+  limit: 0,
+  version: -1,
+  notes: EMPTY_NOTES,
+};
+
+export function getAllNotesSnapshot(userId: string): Note[] {
   if (
-    recentCache.userId !== userId ||
-    recentCache.version !== notesVersion
+    allNotesCache.userId !== userId ||
+    allNotesCache.version !== notesVersion
   ) {
-    recentCache = {
+    allNotesCache = {
       userId,
       version: notesVersion,
-      notes: getLocalNotes(userId)
-        .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
-        .slice(0, limit),
+      notes: getLocalNotes(userId).sort(
+        (a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at)
+      ),
     };
   }
-  return recentCache.notes;
+  return allNotesCache.notes;
+}
+
+export function getRecentOpenedNotesSnapshot(
+  userId: string,
+  limit = 5
+): Note[] {
+  if (
+    recentOpenedCache.userId !== userId ||
+    recentOpenedCache.limit !== limit ||
+    recentOpenedCache.version !== notesVersion
+  ) {
+    const notesById = new Map(getLocalNotes(userId).map((n) => [n.id, n]));
+    const ids = getRecentOpenedIds(userId);
+    let ordered: Note[];
+    if (ids.length > 0) {
+      ordered = ids
+        .map((id) => notesById.get(id))
+        .filter((n): n is Note => n !== undefined);
+    } else {
+      ordered = [...notesById.values()].sort(
+        (a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at)
+      );
+    }
+    recentOpenedCache = {
+      userId,
+      limit,
+      version: notesVersion,
+      notes: ordered.slice(0, limit),
+    };
+  }
+  return recentOpenedCache.notes;
 }
 
 export function getNoteSnapshot(
@@ -111,7 +156,11 @@ export function getLocalNotes(userId: string): Note[] {
   if (typeof window === "undefined") return [];
 
   const parsed = parse<Note[]>(window.localStorage.getItem(storageKey(userId)));
-  return Array.isArray(parsed) ? parsed : [];
+  const notes = Array.isArray(parsed) ? parsed : [];
+  if (notes.some((n) => n.tag === undefined)) {
+    return notes.map((n) => ({ ...n, tag: n.tag ?? null }));
+  }
+  return notes;
 }
 
 export function setLocalNotes(userId: string, notes: Note[]) {
@@ -146,6 +195,13 @@ export function removeLocalNote(userId: string, id: string) {
   notifyUpdated();
 }
 
+function genNoteId() {
+  try {
+    if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  } catch {}
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function createLocalNote(
   userId: string,
   title = "",
@@ -153,9 +209,10 @@ export function createLocalNote(
 ): Note {
   const now = new Date().toISOString();
   const note: Note = {
-    id: crypto.randomUUID(),
+    id: genNoteId(),
     title,
     content,
+    tag: null,
     created_at: now,
     updated_at: now,
   };
@@ -250,4 +307,37 @@ export function clearLastNoteId(userId: string) {
   try {
     window.localStorage.removeItem(lastKey(userId));
   } catch {}
+}
+
+/* ── Recently opened notes ────────────────────────────────── */
+/* Independently tracks note opens (max RECENT_OPENED_CAP).    */
+/* The Recent section uses this ordering and is never filtered */
+/* by the active tag.                                         */
+
+function recentKey(userId: string) {
+  return `${storageKey(userId)}${RECENT_SUFFIX}`;
+}
+
+export function getRecentOpenedIds(userId: string): string[] {
+  if (typeof window === "undefined") return [];
+  const parsed = parse<string[]>(
+    window.localStorage.getItem(recentKey(userId))
+  );
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+function setRecentOpenedIds(userId: string, ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(recentKey(userId), JSON.stringify(ids));
+  } catch {}
+}
+
+export function markNoteOpened(userId: string, id: string) {
+  if (typeof window === "undefined") return;
+  setLastNoteId(userId, id);
+  const ids = getRecentOpenedIds(userId).filter((x) => x !== id);
+  ids.unshift(id);
+  setRecentOpenedIds(userId, ids.slice(0, RECENT_OPENED_CAP));
+  notifyUpdated();
 }

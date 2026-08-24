@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 import { cn } from "@/lib/utils";
 
 interface Button {
@@ -27,7 +29,7 @@ const defaultProps: Cta39Props = {
   buttons: {
     primary: {
       text: "Get Started",
-      url: "https://shadcnblocks.com",
+      url: "/auth",
     },
   },
 };
@@ -39,26 +41,30 @@ const Cta39 = (props: Props) => {
   };
 
   return (
-    <section id="about" className={cn("section", className)}>
-      <div className="container-page">
-        <div className="mx-auto max-w-5xl rounded-md border border-dashed p-8 md:p-12 lg:p-16">
+    <section id="about" className={cn("py-16 md:py-24", className)}>
+      <div className="mx-auto max-w-[1440px] px-5 md:px-10">
+        <div className="mx-auto max-w-5xl rounded-lg border border-dashed p-8 md:p-12 lg:p-16">
           <div className="flex flex-col items-center gap-4 text-center lg:gap-6">
-            <h2 className="text-section">
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
               {heading}
             </h2>
-            <p className="max-w-2xl text-body text-foreground-muted">
+            <p className="max-w-2xl text-lg text-muted-foreground">
               {description}
             </p>
             <div className="mt-2 flex flex-col gap-3 sm:flex-row">
               {buttons?.primary && (
-                <a href={buttons.primary.url} className="btn btn-primary btn-lg">
-                  {buttons.primary.text}
-                </a>
+                <Button size="lg" asChild>
+                  <a href={buttons.primary.url}>
+                    {buttons.primary.text}
+                  </a>
+                </Button>
               )}
               {buttons?.secondary && (
-                <a href={buttons.secondary.url} className="btn btn-secondary btn-lg">
-                  {buttons.secondary.text}
-                </a>
+                <Button variant="secondary" size="lg" asChild>
+                  <a href={buttons.secondary.url}>
+                    {buttons.secondary.text}
+                  </a>
+                </Button>
               )}
             </div>
           </div>

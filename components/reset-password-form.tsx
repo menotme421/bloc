@@ -5,6 +5,8 @@ import { updatePassword } from "@/app/(auth)/auth/actions";
 import type { AuthState } from "@/app/(auth)/auth/actions";
 import { Eye, EyeOff, CircleCheck, Circle, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Field,
   FieldDescription,
@@ -43,10 +45,10 @@ export function ResetPasswordForm({
         <CardContent className="p-6 md:p-8">
           <form action={formAction} className="flex flex-col gap-6">
             <div className="flex flex-col items-center gap-2 text-center">
-              <h1 className="text-card-title text-balance">
+              <h1 className="text-2xl font-bold tracking-tight text-balance">
                 Choose a new password
               </h1>
-              <p className="text-body text-balance text-foreground-muted">
+              <p className="text-lg text-balance text-muted-foreground">
                 Your new password must be different from previous passwords.
               </p>
             </div>
@@ -60,7 +62,7 @@ export function ResetPasswordForm({
                     Password
                   </FieldLabel>
                   <div className="relative">
-                    <input
+                    <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       name="password"
@@ -68,13 +70,13 @@ export function ResetPasswordForm({
                       onChange={(e) => setPassword(e.target.value)}
                       autoComplete="new-password"
                       required
-                      className="input-field input-field-card w-full pr-10"
+                      className="pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((s) => !s)}
                       aria-label={showPassword ? "Hide Password" : "Show Password"}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted transition-colors hover:text-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {showPassword ? (
                         <EyeOff className="size-5" />
@@ -92,7 +94,7 @@ export function ResetPasswordForm({
                     Confirm Password
                   </FieldLabel>
                   <div className="relative">
-                    <input
+                    <Input
                       id="confirm-password"
                       type={showConfirm ? "text" : "password"}
                       name="confirm-password"
@@ -100,13 +102,13 @@ export function ResetPasswordForm({
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       autoComplete="new-password"
                       required
-                      className="input-field input-field-card w-full pr-10"
+                      className="pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirm((s) => !s)}
                       aria-label={showConfirm ? "Hide Password" : "Show Password"}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted transition-colors hover:text-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {showConfirm ? (
                         <EyeOff className="size-5" />
@@ -123,7 +125,7 @@ export function ResetPasswordForm({
                     key={check.label}
                     className={cn(
                       "flex items-center gap-1.5 text-sm",
-                      check.met ? "text-success" : "text-foreground-muted"
+                      check.met ? "text-success" : "text-muted-foreground"
                     )}
                   >
                     {check.met ? (
@@ -150,13 +152,13 @@ export function ResetPasswordForm({
                   </div>
                 )}
               </div>
-              <button
+              <Button
                 type="submit"
-                className="btn btn-primary w-full"
+                className="w-full"
                 disabled={isPending}
               >
                 {isPending ? "Please wait..." : "Update Password"}
-              </button>
+              </Button>
               {state?.error && (
                 <FieldDescription className="text-destructive">
                   {state.error}

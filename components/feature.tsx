@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 import { cn } from "@/lib/utils";
 
@@ -92,14 +93,14 @@ const Feature73 = (props: Props) => {
   };
 
   return (
-    <section id="features" className={cn("section", className)}>
-      <div className="container-page">
+    <section id="features" className={cn("py-16 md:py-24", className)}>
+      <div className="mx-auto max-w-[1440px] px-5 md:px-10">
         <div className="mx-auto mb-9 text-center lg:mb-14 lg:max-w-3xl">
-          <h2 className="mb-3 text-section text-balance md:mb-4 lg:mb-6">
+          <h2 className="mb-3 text-3xl font-bold tracking-tight text-balance md:mb-4 md:text-4xl lg:mb-6">
             {heading}
           </h2>
           {description && (
-            <p className="mb-8 text-body text-foreground-muted">
+            <p className="mb-8 text-lg text-muted-foreground">
               {description}
             </p>
           )}
@@ -117,26 +118,25 @@ const Feature73 = (props: Props) => {
         </div>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {features?.slice(0, 3).map((feature, i) => (
-            <div
-              key={i}
-              className="card card-bordered flex flex-col items-center gap-8 text-center"
-            >
-              <a href={feature.href}>
-                <img
-                  src={feature.image.src}
-                  alt={feature.image.alt}
-                  className="h-auto w-full max-w-[216px] transition-opacity hover:opacity-80"
-                />
-              </a>
-              <div>
-                <h3 className="mb-2 text-body-semibold">
-                  {feature.title}
-                </h3>
-                <p className="text-body text-foreground-muted">
-                  {feature.description}
-                </p>
-              </div>
-            </div>
+            <Card key={i} className="items-center gap-8 text-center">
+              <CardContent className="flex flex-col items-center gap-8">
+                <a href={feature.href}>
+                  <img
+                    src={feature.image.src}
+                    alt={feature.image.alt}
+                    className="h-auto w-full max-w-[216px] transition-opacity hover:opacity-80"
+                  />
+                </a>
+                <div>
+                  <h3 className="mb-2 text-base font-semibold">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {feature.description}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>

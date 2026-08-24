@@ -85,7 +85,7 @@ const lowlightGrammars: Record<string, typeof javascript> = {
 lowlight.register(lowlightGrammars);
 
 import { Button } from "@/components/ui/button";
-import { addOutboxEntry, getLocalNote, getOutbox, isInOutbox, setLastNoteId, upsertLocalNote } from "@/lib/local-notes";
+import { addOutboxEntry, getLocalNote, getOutbox, isInOutbox, markNoteOpened, upsertLocalNote } from "@/lib/local-notes";
 import { syncNote, type SyncStatus } from "@/lib/note-sync";
 import { setSyncStatus } from "@/lib/note-status";
 import type { Note } from "@/lib/notes";
@@ -93,7 +93,13 @@ import { SlashMenu, type SlashMenuController } from "@/components/slash-menu";
 import { TableUI } from "@/components/table-ui";
 import { BubbleMenu } from "@/components/bubble-menu";
 import { Resource } from "@/components/resource-node";
+import { TagChip } from "@/components/tag-chip";
 import { uploadResourceFile } from "@/lib/resource-upload";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MiniToolbar } from "@/components/mobile/mini-toolbar";
+import { BlockPickerSheet } from "@/components/mobile/block-picker-sheet";
+import { BlockActionMenu } from "@/components/mobile/block-action-menu";
+import { MobileSlashInterceptor } from "@/lib/extensions/mobile-slash-interceptor";
 
 const SAVE_DEBOUNCE_MS = 800;
 const SYNC_MAX_ROUNDS = 3;
@@ -109,6 +115,8 @@ export function NoteEditor({
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   const [title, setTitle] = React.useState(note?.title ?? "");
+  const [tag, setTag] = React.useState<string | null>(note?.tag ?? null);
+  const [tagInput, setTagInput] = React.useState("");
   const [resolved, setResolved] = React.useState<"loading" | "ready" | "missing">(
     note ? "ready" : "loading"
   );
@@ -116,16 +124,34 @@ export function NoteEditor({
   const syncingRef = React.useRef(false);
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const titleRef = React.useRef<HTMLInputElement | null>(null);
+  const tagInputRef = React.useRef<HTMLInputElement | null>(null);
   const slashControllerRef = React.useRef<SlashMenuController | null>(null);
   const tableAnchorRef = React.useRef<{ pos: number } | null>(null);
   const editorRef = React.useRef<Editor | null>(null);
 
+  const isMobile = useIsMobile();
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [slashRange, setSlashRange] = React.useState<{ from: number; to: number } | null>(null);
+  const handleOpenPicker = React.useCallback((from: number, to: number) => {
+    setSlashRange({ from, to });
+    setPickerOpen(true);
+  }, []);
+  const handleToolbarAddBlock = React.useCallback(() => {
+    if (!editorRef.current) return;
+    const from = editorRef.current.state.selection.from;
+    const to = editorRef.current.state.selection.to;
+    setSlashRange({ from, to });
+    setPickerOpen(true);
+  }, []);
+
   const editor = useEditor(
     {
+      autofocus: false,
       extensions: [
         StarterKit.configure({
           codeBlock: false,
-          link: { openOnClick: false },
+          link: { openOnClick: true },
         }),
         TextStyle,
         Color,
@@ -177,16 +203,31 @@ export function NoteEditor({
               : "Type / for commands…",
           emptyNodeClass: "is-empty",
         }),
+        MobileSlashInterceptor.configure({ onOpenPicker: handleOpenPicker }),
       ],
       content: note?.content ?? "",
       immediatelyRender: false,
-      shouldRerenderOnTransaction: true,
+      shouldRerenderOnTransaction: false,
       editorProps: {
         attributes: {
           class: "note-content min-h-[320px] focus:outline-none",
         },
-        handleKeyDown: (_view, event) =>
-          slashControllerRef.current?.onKeyDown(event) ?? false,
+        handleKeyDown: (_view, event) => {
+          if (slashControllerRef.current?.onKeyDown(event)) return true;
+          if (
+            event.key === "ArrowUp" &&
+            !event.shiftKey &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.altKey &&
+            _view.state.selection.from <= 1
+          ) {
+            event.preventDefault();
+            tagInputRef.current?.focus();
+            return true;
+          }
+          return false;
+        },
         handlePaste: (_view, event) => {
           const items = Array.from(event.clipboardData?.items ?? []);
           const files = items
@@ -242,9 +283,10 @@ export function NoteEditor({
 
     if (local && !server) {
       setTitle(local.title);
+      setTag(local.tag ?? null);
       editorInstance.commands.setContent(local.content, { emitUpdate: false });
       editorInstance.commands.fixTables();
-      setLastNoteId(userId, id);
+      markNoteOpened(userId, id);
       setResolved("ready");
       if (!isInOutbox(userId, id)) {
         addOutboxEntry(userId, { note: local, mode: "create" });
@@ -253,7 +295,7 @@ export function NoteEditor({
       return;
     }
 
-    setLastNoteId(userId, id);
+    markNoteOpened(userId, id);
 
     if (local && server) {
       const localTime = Date.parse(local.updated_at);
@@ -261,6 +303,7 @@ export function NoteEditor({
       const dirty = isInOutbox(userId, id) || localTime > serverTime;
       if (dirty) {
         setTitle(local.title);
+        setTag(local.tag ?? null);
         editorInstance.commands.setContent(local.content, {
           emitUpdate: false,
         });
@@ -281,6 +324,7 @@ export function NoteEditor({
 
     if (!local && server) {
       upsertLocalNote(userId, server);
+      setTag(server.tag ?? null);
       editorInstance.commands.fixTables();
       setResolved("ready");
     }
@@ -298,8 +342,66 @@ export function NoteEditor({
     };
     upsertLocalNote(userId, updated);
     addOutboxEntry(userId, { note: updated, mode: "update" });
-    setLastNoteId(userId, id);
     scheduleSave();
+  }
+
+  function handleTagCommit(raw: string) {
+    const value = raw.trim().slice(0, 50);
+    if (!value) return;
+    if (tag === value) {
+      setTagInput("");
+      return;
+    }
+    handleTagChange(value);
+  }
+
+  function handleTagChange(value: string | null) {
+    setTag(value);
+    setTagInput("");
+    if (!id) return;
+    const existing = getLocalNote(userId, id);
+    if (!existing) return;
+    const updated: Note = {
+      ...existing,
+      tag: value,
+      updated_at: new Date().toISOString(),
+    };
+    upsertLocalNote(userId, updated);
+    addOutboxEntry(userId, { note: updated, mode: "update" });
+    scheduleSave();
+  }
+
+  function focusEditor() {
+    const editorInstance = editorRef.current;
+    if (editorInstance && !editorInstance.view.hasFocus()) {
+      editorInstance.view.focus();
+    }
+  }
+
+  const isComposingRef = React.useRef(false);
+  function handleTagInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (isComposingRef.current || (e.nativeEvent as unknown as { isComposing?: boolean })?.isComposing) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (tagInput.trim()) handleTagCommit(tagInput);
+      else focusEditor();
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (tagInput.trim()) handleTagCommit(tagInput);
+      focusEditor();
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      titleRef.current?.focus();
+      return;
+    }
+    if ((e.key === "Backspace" || e.key === "Delete") && tagInput === "") {
+      e.preventDefault();
+      handleTagChange(null);
+    }
   }
 
   async function syncLoop(mode: "create" | "update") {
@@ -344,13 +446,13 @@ export function NoteEditor({
       id,
       title: existing?.title.trim() || title.trim(),
       content: editor.getHTML(),
+      tag: existing?.tag ?? null,
       created_at: existing?.created_at ?? new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     upsertLocalNote(userId, note);
     addOutboxEntry(userId, { note, mode });
-    setLastNoteId(userId, id);
     void syncLoop(mode);
   }
 
@@ -359,17 +461,7 @@ export function NoteEditor({
     if (!id) return;
 
     const onUpdate = () => {
-      const content = editor.getHTML();
-      const existing = getLocalNote(userId, id);
-      const updated: Note = {
-        id,
-        title: existing?.title ?? title,
-        content,
-        created_at: existing?.created_at ?? new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      upsertLocalNote(userId, updated);
-      setLastNoteId(userId, id);
+      // Debounced save only — avoid per-keystroke getHTML + localStorage sync which blocks main thread
       scheduleSave();
     };
 
@@ -383,9 +475,9 @@ export function NoteEditor({
   if (resolved === "missing") {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 py-10">
-        <div className="card card-bordered flex flex-col items-center gap-2 py-16 text-center">
-          <p className="text-body-semibold">Note not found</p>
-          <p className="max-w-sm text-body text-foreground-muted">
+        <div className="flex flex-col items-center gap-2 rounded-lg border bg-card py-16 text-center">
+          <p className="text-base font-semibold">Note not found</p>
+          <p className="max-w-sm text-lg text-muted-foreground">
             This note does not exist or was deleted.
           </p>
           <Button asChild size="sm" className="mt-2">
@@ -400,22 +492,91 @@ export function NoteEditor({
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-10 sm:px-6">
       <div className="flex flex-col gap-5">
         <input
+          ref={titleRef}
           value={title}
           onChange={(e) => handleTitleChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown" || e.key === "Enter") {
+              e.preventDefault();
+              tagInputRef.current?.focus();
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              focusEditor();
+            }
+          }}
           placeholder="Untitled"
-          className="w-full bg-transparent text-3xl font-bold tracking-tight text-foreground outline-none placeholder:text-foreground-muted sm:text-4xl"
+          className="w-full bg-transparent text-3xl font-bold tracking-tight text-foreground outline-none placeholder:text-muted-foreground sm:text-4xl"
         />
+        <div className="flex flex-wrap items-center gap-2">
+          {tag && (
+            <TagChip
+              tag={tag}
+              onRemove={() => handleTagChange(null)}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Backspace" || e.key === "Delete") {
+                  e.preventDefault();
+                  handleTagChange(null);
+                } else if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  focusEditor();
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  titleRef.current?.focus();
+                }
+              }}
+            />
+          )}
+          <input
+            ref={tagInputRef}
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onCompositionStart={() => { isComposingRef.current = true; }}
+            onCompositionEnd={() => { isComposingRef.current = false; }}
+            onKeyDown={handleTagInputKeyDown}
+            enterKeyHint="done"
+            inputMode="text"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="Add tag…"
+            aria-label="Add tag"
+            className="h-6 w-28 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </div>
         <div ref={contentRef} className="relative">
-          <SlashMenu editor={editor} controllerRef={slashControllerRef} />
-          <BubbleMenu editor={editor} userId={userId} />
+          {/* Desktop slash menu — untouched, never mounted on mobile */}
+          {!isMobile && <SlashMenu editor={editor} controllerRef={slashControllerRef} />}
+          {!isMobile && <BubbleMenu editor={editor} userId={userId} />}
           <TableUI
             editor={editor}
             containerRef={contentRef}
             tableAnchorRef={tableAnchorRef}
           />
           <EditorContent editor={editor} />
+          {/* Mobile block action menu — long-press handler attached to contentRef */}
+          <BlockActionMenu editor={editor} isMobile={isMobile} contentRef={contentRef} />
         </div>
       </div>
+      {/* Mobile-only 3-part system — no leak to desktop */}
+      {isMobile && (
+        <>
+          <MiniToolbar editor={editor} isMobile={isMobile} onAddBlock={handleToolbarAddBlock} userId={userId} />
+          <BlockPickerSheet
+            editor={editor}
+            open={pickerOpen}
+            onOpenChange={(o) => {
+              setPickerOpen(o);
+              if (!o) {
+                setSlashRange(null);
+                // When picker closed without selection, keyboard reappears and focus returns
+                setTimeout(() => editor?.chain().focus().run(), 80);
+              }
+            }}
+            slashRange={slashRange}
+          />
+        </>
+      )}
     </div>
   );
 }

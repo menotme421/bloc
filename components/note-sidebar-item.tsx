@@ -40,6 +40,7 @@ import {
 } from "@/lib/local-notes"
 import { syncNote } from "@/lib/note-sync"
 import type { Note } from "@/lib/notes"
+import { TagChip } from "@/components/tag-chip"
 
 export function NoteSidebarItem({
   userId,
@@ -111,7 +112,10 @@ export function NoteSidebarItem({
         <SidebarMenuButton asChild isActive={isActive} className="font-normal">
           <a href={url}>
             <FileTextIcon />
-            <span>{note.title.trim() || "Untitled"}</span>
+            <span className="min-w-0 flex-1 truncate">
+              {note.title.trim() || "Untitled"}
+            </span>
+            {note.tag && <TagChip tag={note.tag} className="h-5" />}
           </a>
         </SidebarMenuButton>
       )}

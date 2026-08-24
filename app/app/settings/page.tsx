@@ -1,7 +1,8 @@
-export default function SettingsPage() {
-  return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 py-10">
-      <h1 className="text-section">Settings</h1>
-    </div>
-  );
+import { getDisplayName, getUser } from "@/lib/dal";
+import { SettingsPage } from "@/components/settings-page";
+
+export default async function SettingsPageRoute() {
+  const user = await getUser();
+
+  return <SettingsPage name={getDisplayName(user)} email={user.email ?? ""} />;
 }

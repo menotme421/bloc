@@ -13,18 +13,24 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { BlocksIcon, HomeIcon, PlusIcon, SearchIcon } from "lucide-react"
+import { PlusIcon, SearchIcon } from "lucide-react"
+import { useI18n } from "@/lib/i18n/provider"
+import { useIsMobile } from "@/hooks/use-mobile"
 import {
   createLocalNote,
+  getAllNotesSnapshot,
   getLocalNotes,
-  getRecentNotesSnapshot,
+  getNoteSnapshot,
+  getRecentOpenedNotesSnapshot,
   EMPTY_NOTES,
-  setLastNoteId,
+  markNoteOpened,
   subscribeNotes,
   upsertLocalNote,
 } from "@/lib/local-notes"
 import type { Note } from "@/lib/notes"
 import { NoteSidebarItem } from "@/components/note-sidebar-item"
+import { TagChip } from "@/components/tag-chip"
+import { Separator } from "@/components/ui/separator"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -46,12 +52,37 @@ export function AppSidebar({
 } & React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useI18n()
+  const isMobile = useIsMobile()
   const [searchOpen, setSearchOpen] = React.useState(false)
+  const isNotePage = pathname.startsWith("/app/notes/")
+
   const recent = React.useSyncExternalStore(
     subscribeNotes,
-    () => getRecentNotesSnapshot(userId, RECENT_LIMIT),
+    () => getRecentOpenedNotesSnapshot(userId, RECENT_LIMIT),
     () => EMPTY_NOTES
   )
+  const currentNoteId = isNotePage ? pathname.split("/").pop() : null
+
+  const currentNote = React.useSyncExternalStore(
+    subscribeNotes,
+    () => (currentNoteId ? getNoteSnapshot(userId, currentNoteId) : null),
+    () => null
+  )
+
+  const allNotes = React.useSyncExternalStore(
+    subscribeNotes,
+    () => getAllNotesSnapshot(userId),
+    () => EMPTY_NOTES
+  )
+
+  const relatedNotes = React.useMemo(() => {
+    const tag = currentNote?.tag
+    if (!tag || !currentNoteId) return []
+    return allNotes.filter(
+      (note) => note.id !== currentNoteId && note.tag === tag
+    )
+  }, [currentNote, currentNoteId, allNotes])
 
   React.useEffect(() => {
     if (recentNotes && recentNotes.length > 0) {
@@ -70,32 +101,28 @@ export function AppSidebar({
 
   function handleCreateNote() {
     const note = createLocalNote(userId)
-    setLastNoteId(userId, note.id)
+    markNoteOpened(userId, note.id)
     router.push(`/app/notes/${note.id}`)
   }
+
+  // Sidebar not used on smartphone — bottom nav handles mobile. Hide entirely on mobile.
+  if (isMobile) return null
 
   return (
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <BlocksIcon className="size-4" />
-          <span className="truncate text-body-semibold tracking-[-0.05em]">Bloc</span>
+          <span className="truncate text-[1.75rem] font-bold tracking-tight leading-none">Bloc</span>
         </div>
         <NavMain
           items={[
             {
-              title: "Home",
-              url: "/app",
-              icon: <HomeIcon />,
-              isActive: pathname === "/app",
-            },
-            {
-              title: "Search",
+              title: t("sidebar.search"),
               icon: <SearchIcon />,
               onSelect: () => setSearchOpen(true),
             },
             {
-              title: "Create note",
+              title: t("sidebar.createNote"),
               icon: <PlusIcon />,
               onSelect: handleCreateNote,
             },
@@ -104,7 +131,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarGroup className="p-0">
-          <SidebarGroupLabel className="h-6">Recent</SidebarGroupLabel>
+          <SidebarGroupLabel className="h-6">{t("sidebar.recent")}</SidebarGroupLabel>
           <SidebarGroupContent>
             {recent.length > 0 ? (
               <SidebarMenu className="gap-0.5">
@@ -117,18 +144,50 @@ export function AppSidebar({
                 ))}
               </SidebarMenu>
             ) : (
-              <p className="px-2 py-1.5 text-xs text-foreground-muted">
-                No notes yet
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                {t("sidebar.noNotesYet")}
               </p>
             )}
           </SidebarGroupContent>
         </SidebarGroup>
+        {currentNote?.tag && (
+          <>
+            <Separator className="my-3" />
+            <SidebarGroup className="p-0">
+              <SidebarGroupLabel className="h-6 gap-1.5">
+                {t("sidebar.notesWith")}
+                <TagChip tag={currentNote.tag} className="h-5" />
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                {relatedNotes.length > 0 ? (
+                  <SidebarMenu className="gap-0.5">
+                    {relatedNotes.map((note) => (
+                      <NoteSidebarItem
+                        key={note.id}
+                        userId={userId}
+                        note={note}
+                      />
+                    ))}
+                  </SidebarMenu>
+                ) : (
+                  <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                    {t("sidebar.noOtherWithTag")}
+                  </p>
+                )}
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />
-      <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
+      <SearchCommand
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        userId={userId}
+      />
     </Sidebar>
   )
 }

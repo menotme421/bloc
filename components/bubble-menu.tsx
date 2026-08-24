@@ -271,7 +271,7 @@ function LinkDialog({
               "rounded-md px-2.5 py-1 text-sm transition-colors",
               tab === "url"
                 ? "bg-secondary text-secondary-foreground"
-                : "text-foreground-muted hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             URL
@@ -283,7 +283,7 @@ function LinkDialog({
               "rounded-md px-2.5 py-1 text-sm transition-colors",
               tab === "note"
                 ? "bg-secondary text-secondary-foreground"
-                : "text-foreground-muted hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             Note
@@ -328,7 +328,7 @@ function LinkDialog({
             />
             <div className="max-h-56 overflow-y-auto rounded-md border border-border/60">
               {filteredNotes.length === 0 && (
-                <p className="px-3 py-3 text-sm text-foreground-muted">
+                <p className="px-3 py-3 text-sm text-muted-foreground">
                   No notes found.
                 </p>
               )}
@@ -344,7 +344,7 @@ function LinkDialog({
                   <span className="truncate">
                     {note.title.trim() || "Untitled"}
                   </span>
-                  <ExternalLinkIcon className="size-3.5 shrink-0 text-foreground-muted" />
+                  <ExternalLinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
                 </button>
               ))}
             </div>
@@ -369,6 +369,13 @@ export function BubbleMenu({
   const [menuEl, setMenuEl] = React.useState<HTMLDivElement | null>(null);
   const [bubbleGen, setBubbleGen] = React.useState(0);
   const hiddenRef = React.useRef(false);
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useLayoutEffect(() => {
+    if (menuRef.current !== menuEl) {
+      setMenuEl(menuRef.current);
+    }
+  }, [bubbleGen, menuEl]);
 
   React.useEffect(() => {
     if (!editor) return;
@@ -383,12 +390,14 @@ export function BubbleMenu({
 
   const shouldShow = React.useCallback(
     ({ editor: e }: { editor: Editor }) => {
+      // Keep bubble visible while color/turnInto dropdown is open (focus moves to portal)
+      if (openPanel) return true;
       const { selection } = e.state;
       if (selection.empty) return false;
       if (e.isActive("codeBlock")) return false;
       return true;
     },
-    []
+    [openPanel]
   );
 
   const menuOptions = React.useMemo(
@@ -426,7 +435,10 @@ export function BubbleMenu({
   return (
     <TiptapBubbleMenu
       key={bubbleGen}
-      ref={setMenuEl}
+      ref={(el) => {
+        menuRef.current = el;
+        if (el && el !== menuEl) setMenuEl(el);
+      }}
       editor={editor}
       pluginKey="bubbleMenu"
       updateDelay={0}
@@ -498,7 +510,7 @@ export function BubbleMenu({
         onOpenChange={(open) => setOpenPanel(open ? "textColor" : null)}
       >
         <DropdownMenuTrigger asChild>
-          <ToolbarButton label="Text color">
+          <ToolbarButton label="Text color" onMouseDown={(e) => e.stopPropagation()}>
             <PaletteIcon
               className="size-4"
               style={{
@@ -539,6 +551,7 @@ export function BubbleMenu({
           <ToolbarButton
             label="Highlight color"
             active={Boolean(activeHighlight)}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <HighlighterIcon className="size-4" />
           </ToolbarButton>
@@ -573,11 +586,11 @@ export function BubbleMenu({
         onOpenChange={(open) => setOpenPanel(open ? "turnInto" : null)}
       >
         <DropdownMenuTrigger asChild>
-          <ToolbarButton label="Turn into">
+          <ToolbarButton label="Turn into" onMouseDown={(e) => e.stopPropagation()}>
             <TurnIntoIcon className="size-4" />
             <ChevronDownIcon
               className={cn(
-                "-ml-0.5 size-3 text-foreground-muted transition-transform",
+                "-ml-0.5 size-3 text-muted-foreground transition-transform",
                 openPanel === "turnInto" && "rotate-180"
               )}
             />
@@ -602,7 +615,7 @@ export function BubbleMenu({
                     setOpenPanel(null);
                   }}
                 >
-                  <Icon className="size-4 text-foreground-muted" />
+                  <Icon className="size-4 text-muted-foreground" />
                   <span className="flex-1 whitespace-nowrap">{item.label}</span>
                   {active && <CheckIcon className="size-4 text-primary" />}
                 </DropdownMenuItem>

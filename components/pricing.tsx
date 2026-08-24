@@ -81,13 +81,13 @@ const Pricing2 = (props: Props) => {
   };
 
   return (
-    <section id="pricing" className={cn("section", className)}>
-      <div className="container-page">
+    <section id="pricing" className={cn("py-16 md:py-24", className)}>
+      <div className="mx-auto max-w-[1440px] px-5 md:px-10">
         <div className="mx-auto mb-5 max-w-5xl text-center">
-          <h2 className="mb-4 text-section">
+          <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl">
             {heading}
           </h2>
-          <p className="text-body text-foreground-muted">{description}</p>
+          <p className="text-lg text-muted-foreground">{description}</p>
         </div>
         <div className="flex flex-col items-center gap-10">
           
@@ -99,17 +99,17 @@ const Pricing2 = (props: Props) => {
               >
                 <CardHeader className="gap-0.5">
                   <CardTitle>
-                    <p className="text-body-semibold">{plan.name}</p>
+                    <p className="text-base font-semibold">{plan.name}</p>
                   </CardTitle>
                   <div className="mb-5 flex min-w-0 flex-wrap items-end gap-x-1">
-                    <span className="min-w-0 text-card-title">
+                    <span className="min-w-0 text-2xl font-bold tracking-tight">
                       {plan.monthlyPrice}
                     </span>
-                    <span className="text-body text-foreground-muted">
+                    <span className="text-sm text-muted-foreground">
                       /per month
                     </span>
                   </div>
-                  <p className="text-body text-foreground-muted">{plan.description}</p>
+                  <p className="text-sm text-muted-foreground">{plan.description}</p>
                 </CardHeader>
                 <CardContent>
                   <Separator className="mb-6" />
@@ -122,7 +122,7 @@ const Pricing2 = (props: Props) => {
                     {plan.features.map((feature, index) => (
                       <li
                         key={index}
-                        className="flex items-center gap-2 text-body"
+                        className="flex items-center gap-2 text-sm"
                       >
                         <CircleCheck className="size-4 shrink-0" />
                         <span className="min-w-0 break-words">
@@ -133,13 +133,18 @@ const Pricing2 = (props: Props) => {
                   </ul>
                 </CardContent>
               <CardFooter className="mt-auto">
-                <a 
-                  href={plan.button.url}
-                  target="_blank"
-                  className={`btn w-full ${plan.highlighted ? "btn-primary" : "btn-secondary"}`}
+                <Button
+                  variant={plan.highlighted ? "default" : "secondary"}
+                  className="w-full"
+                  asChild
                 >
-                  {plan.button.text}
-                </a>
+                  <a
+                    href={plan.button.url}
+                    target="_blank"
+                  >
+                    {plan.button.text}
+                  </a>
+                </Button>
               </CardFooter>
               </Card>
             ))}

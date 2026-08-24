@@ -89,26 +89,26 @@ const Footer2 = (props: Props) => {
   const visibleSections = (sections ?? []).slice(0, MAX_SECTIONS);
 
   return (
-    <section className={cn("section", className)}>
-      <div className="container-page">
+    <section className={cn("py-16 md:py-24", className)}>
+      <div className="mx-auto max-w-[1440px] px-5 md:px-10">
         <footer>
           <div className="grid grid-cols-2 gap-8 lg:grid-cols-6">
             <div className="col-span-2 mb-8 lg:mb-0">
               <div className="flex items-center lg:justify-start">
                 <a href="/" className="flex items-center gap-2">
-                  <span className="text-logo ">Bloc.</span>
+                  <span className="text-2xl font-black tracking-tight">Bloc.</span>
                 </a>
               </div>
-              <p className="mt-4 text-body text-foreground-muted">
+              <p className="mt-4 text-lg text-muted-foreground">
                 {description}
               </p>
             </div>
             {visibleSections.map((section, sectionIdx) => (
               <div key={sectionIdx}>
-                <h3 className="mb-4 text-body-semibold text-foreground">
+                <h3 className="mb-4 text-base font-semibold text-foreground">
                   {section.title}
                 </h3>
-                <ul className="space-y-4 text-body text-foreground-muted">
+                <ul className="space-y-4 text-lg text-muted-foreground">
                   {section.links.map((link, linkIdx) => (
                     <li
                       key={linkIdx}
@@ -121,7 +121,7 @@ const Footer2 = (props: Props) => {
               </div>
             ))}
           </div>
-          <div className="mt-8 flex flex-col justify-between gap-4 border-t border-border pt-8 text-caption text-foreground-muted md:flex-row md:items-center">
+          <div className="mt-8 flex flex-col justify-between gap-4 border-t border-border pt-8 text-xs text-muted-foreground md:flex-row md:items-center">
             <p>{copyright}</p>
             <ul className="flex gap-4">
               {legalLinks?.map((link, linkIdx) => (

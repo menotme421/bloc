@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import { DM_Sans } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
+import { ThemeProvider } from "@/components/theme-provider";
+import { I18nProvider } from "@/lib/i18n/provider";
 import "./globals.css";
 
-const geistSans = DM_Sans({
+const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = DM_Sans({
+const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
@@ -15,6 +17,15 @@ const geistMono = DM_Sans({
 export const metadata: Metadata = {
   title: "Bloc. A simple block based site for student taking notes",
   description: "A better way to organize and create your notes",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover" as const,
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
@@ -25,9 +36,19 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <I18nProvider>{children}</I18nProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
