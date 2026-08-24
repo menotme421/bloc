@@ -28,19 +28,18 @@ export type AuthState = {
 async function getOrigin() {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
-  if (host) {
-    // Respect the actual request host (LAN IP 192.168.x.x, localhost, or live domain)
-    // instead of hardcoding SITE_URL in production — fixes redirect to blocapps.com
-    // when testing on http://192.168.1.8:3000 via start:lan.
-    const forwardedProto = h.get("x-forwarded-proto");
-    const proto =
-      forwardedProto ??
-      (host.includes("localhost") ||
+  // For LAN/localhost testing, respect the actual host (http://192.168.x.x:3000)
+  // For all other hosts (blocapps.com, workers.dev), use canonical Site URL
+  // to ensure Google OAuth code verifier cookie and redirect are on same domain.
+  if (
+    host &&
+    (host.includes("localhost") ||
       host.startsWith("192.168.") ||
       host.startsWith("10.") ||
-      host.startsWith("172.")
-        ? "http"
-        : "https");
+      host.startsWith("172."))
+  ) {
+    const forwardedProto = h.get("x-forwarded-proto");
+    const proto = forwardedProto ?? "http";
     return `${proto}://${host}`;
   }
   return process.env.NEXT_PUBLIC_SITE_URL ?? SITE_URL;
