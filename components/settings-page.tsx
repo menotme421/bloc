@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { useTheme } from "next-themes";
-import { Loader2, Monitor, Moon, Sun, Trash2, TriangleAlert, GlobeIcon, ChevronDownIcon, CheckIcon } from "lucide-react";
+import { Loader2, Monitor, Moon, Sun, Trash2, TriangleAlert, GlobeIcon, ChevronDownIcon, CheckIcon, LogOut } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/provider";
@@ -12,6 +12,7 @@ import {
   deleteAccount,
   type SettingsState,
 } from "@/app/app/settings/actions";
+import { signOut } from "@/app/(auth)/auth/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -207,6 +208,29 @@ function LanguageCard() {
   );
 }
 
+function SignOutCard() {
+  const { t } = useI18n();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <LogOut className="size-4" />
+          {t("settings.signOut.title")}
+        </CardTitle>
+        <CardDescription>{t("settings.signOut.desc")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form action={signOut}>
+          <Button type="submit" variant="outline" className="w-full justify-center gap-2">
+            <LogOut className="size-4" />
+            {t("settings.signOut.button")}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DangerCard({ email }: { email: string }) {
   const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
@@ -302,6 +326,7 @@ export function SettingsPage({
       <ProfileCard name={name} email={email} />
       <AppearanceCard />
       <LanguageCard />
+      <SignOutCard />
       <DangerCard email={email} />
     </div>
   );

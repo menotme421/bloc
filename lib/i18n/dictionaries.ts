@@ -112,6 +112,11 @@ export const en = {
       cancel: "Cancel",
       deleteForever: "Delete forever",
     },
+    signOut: {
+      title: "Sign out",
+      desc: "Sign out of your account on this device.",
+      button: "Sign out",
+    },
   },
   sidebar: {
     recent: "Recent",
@@ -232,6 +237,11 @@ export const ms: Dictionary = {
       typeToConfirm: "Taip {email} untuk mengesahkan.",
       cancel: "Batal",
       deleteForever: "Padam selamanya",
+    },
+    signOut: {
+      title: "Log keluar",
+      desc: "Log keluar daripada akaun anda pada peranti ini.",
+      button: "Log keluar",
     },
   },
   sidebar: {
@@ -354,6 +364,11 @@ export const zhCN: Dictionary = {
       cancel: "取消",
       deleteForever: "永久删除",
     },
+    signOut: {
+      title: "退出登录",
+      desc: "在此设备上退出你的账户。",
+      button: "退出登录",
+    },
   },
   sidebar: {
     recent: "最近",
@@ -474,6 +489,11 @@ export const zhTW: Dictionary = {
       typeToConfirm: "輸入 {email} 以確認。",
       cancel: "取消",
       deleteForever: "永久刪除",
+    },
+    signOut: {
+      title: "登出",
+      desc: "在此裝置上登出你的帳戶。",
+      button: "登出",
     },
   },
   sidebar: {
