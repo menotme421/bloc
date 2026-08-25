@@ -238,7 +238,7 @@ export function MobileNoteCard({
               )}
               {note.tag && (
                 <div className="pt-0.5">
-                  <TagChip tag={note.tag} className="h-5 text-[11px]" />
+                  <TagChip tag={note.tag} onClick={() => router.push(`/app/search?tag=${encodeURIComponent(note.tag!)}`)} className="h-5 text-[11px]" />
                 </div>
               )}
             </div>
@@ -265,7 +265,7 @@ export function MobileNoteCard({
             )}
             {note.tag && (
               <div className="pt-1">
-                <TagChip tag={note.tag} className="h-5 text-[11px]" />
+                <TagChip tag={note.tag} onClick={() => router.push(`/app/search?tag=${encodeURIComponent(note.tag!)}`)} className="h-5 text-[11px]" />
               </div>
             )}
           </>

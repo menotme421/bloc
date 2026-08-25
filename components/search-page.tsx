@@ -13,13 +13,24 @@ import {
 import { filterNotes, getUniqueTags, type DateFilter } from "@/lib/note-filters";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/provider";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export function SearchPage({ userId }: { userId: string }) {
   const { t } = useI18n();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [query, setQuery] = React.useState("");
   const [dateFilter, setDateFilter] = React.useState<DateFilter>("all");
   const [tagFilter, setTagFilter] = React.useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const tag = searchParams.get("tag");
+    if (tag) {
+      setTagFilter(tag);
+      setFiltersOpen(true);
+    }
+  }, [searchParams]);
 
   const allNotes = React.useSyncExternalStore(
     subscribeNotes,
@@ -30,19 +41,34 @@ export function SearchPage({ userId }: { userId: string }) {
   const tags = React.useMemo(() => getUniqueTags(allNotes), [allNotes]);
 
   const hasQuery = query.trim().length > 0;
+  const hasActiveFilter = hasQuery || dateFilter !== "all" || tagFilter !== null;
 
   const filtered = React.useMemo(() => {
-    if (!hasQuery) return [];
+    if (!hasActiveFilter) return [];
     return filterNotes(allNotes, query, dateFilter, tagFilter);
-  }, [allNotes, query, dateFilter, tagFilter, hasQuery]);
+  }, [allNotes, query, dateFilter, tagFilter, hasActiveFilter]);
 
-  const hasActive =
-    dateFilter !== "all" || tagFilter !== null || hasQuery;
+  const hasActive = hasActiveFilter;
 
   function clearAll() {
     setQuery("");
     setDateFilter("all");
     setTagFilter(null);
+    router.replace("/app/search");
+  }
+
+  function handleTagChange(tag: string | null) {
+    setTagFilter(tag);
+    if (tag) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tag", tag);
+      router.replace(`/app/search?${params.toString()}`);
+    } else {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("tag");
+      const qs = params.toString();
+      router.replace(qs ? `/app/search?${qs}` : "/app/search");
+    }
   }
 
   return (
@@ -84,7 +110,7 @@ export function SearchPage({ userId }: { userId: string }) {
             dateValue={dateFilter}
             onDateChange={setDateFilter}
             tagValue={tagFilter}
-            onTagChange={setTagFilter}
+            onTagChange={handleTagChange}
             tags={tags}
             onClear={clearAll}
             hasActive={hasActive}
@@ -121,7 +147,7 @@ export function SearchPage({ userId }: { userId: string }) {
       )}
 
       {/* Results */}
-      {!hasQuery ? (
+      {!hasActive ? (
         <div className="rounded-xl border border-dashed bg-card p-8 text-center">
           <SearchIcon className="mx-auto size-8 text-muted-foreground/50" />
           <p className="mt-3 text-sm font-medium">{t("search.searchYourNotes")}</p>

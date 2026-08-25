@@ -25,29 +25,22 @@ function tagColor(tag: string) {
 export function TagChip({
   tag,
   onRemove,
+  onClick,
   className,
   tabIndex,
   onKeyDown,
 }: {
   tag: string;
   onRemove?: () => void;
+  onClick?: () => void;
   className?: string;
   tabIndex?: number;
   onKeyDown?: (event: React.KeyboardEvent) => void;
 }) {
   const { bg, fg } = tagColor(tag);
 
-  return (
-    <span
-      tabIndex={tabIndex}
-      onKeyDown={onKeyDown}
-      style={{ backgroundColor: bg, color: fg }}
-      className={cn(
-        "inline-flex h-6 max-w-52 shrink-0 cursor-default items-center gap-1 rounded-full px-2.5 text-xs font-medium whitespace-nowrap outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50",
-        onRemove && "pr-1",
-        className
-      )}
-    >
+  const content = (
+    <>
       <span className="truncate">{tag}</span>
       {onRemove && (
         <button
@@ -62,6 +55,43 @@ export function TagChip({
           <XIcon className="size-3" />
         </button>
       )}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        tabIndex={tabIndex}
+        onKeyDown={onKeyDown}
+        style={{ backgroundColor: bg, color: fg }}
+        className={cn(
+          "inline-flex h-6 max-w-52 shrink-0 cursor-pointer items-center gap-1 rounded-full px-2.5 text-xs font-medium whitespace-nowrap outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 hover:opacity-90 active:scale-95 touch-manipulation",
+          onRemove && "pr-1",
+          className
+        )}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <span
+      tabIndex={tabIndex}
+      onKeyDown={onKeyDown}
+      style={{ backgroundColor: bg, color: fg }}
+      className={cn(
+        "inline-flex h-6 max-w-52 shrink-0 cursor-default items-center gap-1 rounded-full px-2.5 text-xs font-medium whitespace-nowrap outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        onRemove && "pr-1",
+        className
+      )}
+    >
+      {content}
     </span>
   );
 }

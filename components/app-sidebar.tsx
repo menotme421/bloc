@@ -13,7 +13,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { PlusIcon, SearchIcon } from "lucide-react"
+import { Library, PlusIcon } from "lucide-react"
 import { useI18n } from "@/lib/i18n/provider"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
@@ -118,7 +118,7 @@ export function AppSidebar({
           items={[
             {
               title: t("sidebar.search"),
-              icon: <SearchIcon />,
+              icon: <Library />,
               onSelect: () => setSearchOpen(true),
             },
             {

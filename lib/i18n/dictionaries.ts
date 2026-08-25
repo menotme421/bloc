@@ -123,7 +123,7 @@ export const en = {
     noNotesYet: "No notes yet",
     notesWith: "Notes with",
     noOtherWithTag: "No other notes with this tag",
-    search: "Search",
+    search: "Notes Manager",
     createNote: "Create note",
   },
 };
@@ -249,7 +249,7 @@ export const ms: Dictionary = {
     noNotesYet: "Belum ada nota",
     notesWith: "Nota dengan",
     noOtherWithTag: "Tiada nota lain dengan tag ini",
-    search: "Cari",
+    search: "Notes Manager",
     createNote: "Cipta nota",
   },
 };
@@ -375,7 +375,7 @@ export const zhCN: Dictionary = {
     noNotesYet: "暂无笔记",
     notesWith: "包含标签的笔记",
     noOtherWithTag: "没有其他包含此标签的笔记",
-    search: "搜索",
+    search: "Notes Manager",
     createNote: "新建笔记",
   },
 };
@@ -501,7 +501,7 @@ export const zhTW: Dictionary = {
     noNotesYet: "暫無筆記",
     notesWith: "包含標籤的筆記",
     noOtherWithTag: "沒有其他包含此標籤的筆記",
-    search: "搜尋",
+    search: "Notes Manager",
     createNote: "新增筆記",
   },
 };

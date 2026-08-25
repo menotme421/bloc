@@ -437,7 +437,6 @@ export function BubbleMenu({
       key={bubbleGen}
       ref={(el) => {
         menuRef.current = el;
-        if (el && el !== menuEl) setMenuEl(el);
       }}
       editor={editor}
       pluginKey="bubbleMenu"
