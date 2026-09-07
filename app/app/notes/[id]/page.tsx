@@ -1,6 +1,6 @@
 import { NoteEditor } from "@/components/note-editor";
-import { verifySession } from "@/lib/dal";
-import { getNote } from "@/lib/notes";
+import { tryVerifySession } from "@/lib/dal";
+import { tryGetNote } from "@/lib/notes";
 
 export default async function NoteDetailPage({
   params,
@@ -8,8 +8,10 @@ export default async function NoteDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const note = await getNote(id);
+  const session = await tryVerifySession();
+  const note = await tryGetNote(id);
 
-  const { userId } = await verifySession();
+  const userId = session?.userId ?? "";
+
   return <NoteEditor userId={userId} note={note} />;
 }

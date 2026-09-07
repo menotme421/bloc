@@ -14,9 +14,11 @@ import { filterNotes, getUniqueTags, type DateFilter } from "@/lib/note-filters"
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/provider";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useResolvedUserId } from "@/lib/use-resolved-user-id";
 
-export function SearchPage({ userId }: { userId: string }) {
+export function SearchPage({ userId: userIdProp }: { userId: string }) {
   const { t } = useI18n();
+  const userId = useResolvedUserId(userIdProp);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = React.useState("");

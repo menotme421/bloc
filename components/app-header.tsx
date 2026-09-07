@@ -24,13 +24,25 @@ import {
 } from "@/lib/note-status"
 import { useI18n } from "@/lib/i18n/provider"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { ArrowLeftIcon } from "lucide-react"
+import { ArrowLeftIcon, EllipsisIcon, RefreshCwIcon, RotateCcwClockIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useResolvedUserId } from "@/lib/use-resolved-user-id"
+import { syncPending } from "@/lib/note-sync"
+import { NoteHistory } from "@/components/note-history"
 
-export function AppHeader({ userId }: { userId: string }) {
+export function AppHeader({ userId: userIdProp }: { userId: string }) {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useI18n()
+  const userId = useResolvedUserId(userIdProp)
+  const [historyOpen, setHistoryOpen] = React.useState(false)
   const isMobile = useIsMobile()
   const isNotePage = pathname.startsWith("/app/notes/")
   const isMobileHome = pathname === "/app/home" || pathname === "/app/search"
@@ -112,10 +124,24 @@ export function AppHeader({ userId }: { userId: string }) {
             </Badge>
           )}
           {syncStatus === "offline" && (
-            <Badge variant="outline" className="gap-1.5 text-destructive">
-              <span className="size-1.5 rounded-full bg-current" />
-              Offline
-            </Badge>
+            <>
+              <Badge variant="outline" className="gap-1.5 text-destructive">
+                <span className="size-1.5 rounded-full bg-current" />
+                Offline
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                aria-label="Retry sync"
+                onClick={() => {
+                  if (userId) void syncPending(userId)
+                }}
+              >
+                <RefreshCwIcon className="size-3.5" />
+                Retry
+              </Button>
+            </>
           )}
           {syncStatus === "synced" && (
             <Badge variant="outline" className="gap-1.5 text-success">
@@ -123,6 +149,34 @@ export function AppHeader({ userId }: { userId: string }) {
               Synced
             </Badge>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Note actions"
+              >
+                <EllipsisIcon />
+                <span className="sr-only">Note actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-44">
+              <DropdownMenuLabel>Note actions</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => setHistoryOpen(true)}>
+                <RotateCcwClockIcon />
+                History
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {noteId && userId ? (
+            <NoteHistory
+              userId={userId}
+              noteId={noteId}
+              showTrigger={false}
+              open={historyOpen}
+              onOpenChange={setHistoryOpen}
+            />
+          ) : null}
         </div>
       )}
     </header>

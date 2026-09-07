@@ -1,7 +1,13 @@
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v4";
 const STATIC_CACHE = `bloc-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `bloc-pages-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
+// NOTE: do NOT precache authenticated routes (/app*). Caching them at
+// install time poisons the cache with the /auth redirect HTML when the
+// worker installs while logged out, causing offline refresh to show the
+// auth page. Only the public /offline fallback is precached; authed pages
+// are cached at runtime after a successful (non-redirected) navigation.
+const PRECACHE_URLS = [];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -11,6 +17,14 @@ self.addEventListener("install", (event) => {
         await cache.add(new Request(OFFLINE_URL, { cache: "reload" }));
       } catch (e) {
         // offline page may not be available at install time (first deploy), ignore
+      }
+      // Precache app shell pages for offline navigation
+      for (const url of PRECACHE_URLS) {
+        try {
+          await cache.add(new Request(url, { cache: "reload" }));
+        } catch (e) {
+          // pages may not be available at install time, ignore
+        }
       }
       self.skipWaiting();
     })()
@@ -60,6 +74,18 @@ self.addEventListener("fetch", (event) => {
   if (isAuthRequest(url)) return;
   if (url.pathname === "/sw.js") return;
 
+  // Skip dev/hot-reload requests entirely (passthrough, never cache).
+  // Turbopack/webpack dev chunk URLs are stable across `next dev` restarts
+  // while contents change — caching them breaks the module registry
+  // ("module factory is not available").
+  if (
+    url.pathname.startsWith("/_next/webpack-hmr") ||
+    url.pathname.startsWith("/_next/static/development") ||
+    url.pathname.startsWith("/__nextjs_")
+  ) {
+    return;
+  }
+
   // Navigation requests — network-first, fallback to cache then offline page
   if (request.mode === "navigate") {
     event.respondWith(
@@ -67,9 +93,22 @@ self.addEventListener("fetch", (event) => {
         try {
           const networkResponse = await fetch(request);
           const cache = await caches.open(PAGES_CACHE);
-          // Clone and cache successful navigations (only 200)
-          if (networkResponse && networkResponse.ok) {
-            cache.put(request, networkResponse.clone());
+          // Clone and cache successful navigations (only 200).
+          // Never cache redirects (e.g. /app -> /auth) — response.url will
+          // differ after following the redirect, or redirected=true.
+          if (
+            networkResponse &&
+            networkResponse.ok &&
+            !networkResponse.redirected
+          ) {
+            try {
+              const resUrl = new URL(networkResponse.url);
+              if (resUrl.pathname === url.pathname) {
+                cache.put(request, networkResponse.clone());
+              }
+            } catch {
+              // ignore URL parse errors, just don't cache
+            }
           }
           return networkResponse;
         } catch (err) {
@@ -89,15 +128,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets — cache-first
-  if (isAssetRequest(url)) {
+  // Static assets — cache-first.
+  // Excludes /_next/: dev chunk URLs are NOT content-hashed (stable across
+  // `next dev` restarts with different contents), so cache-first serves stale
+  // code and crashes module evaluation. /_next/ is handled network-first below.
+  if (isAssetRequest(url) && !url.pathname.startsWith("/_next/")) {
     event.respondWith(
       (async () => {
         const cached = await caches.match(request);
         if (cached) return cached;
         try {
           const networkResponse = await fetch(request);
-          if (networkResponse && networkResponse.ok) {
+          if (networkResponse && networkResponse.ok && !networkResponse.redirected) {
             const cache = await caches.open(STATIC_CACHE);
             cache.put(request, networkResponse.clone());
           }
@@ -111,7 +153,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Other same-origin GETs (RSC, data) — network only, no caching
+  // RSC payloads, Next internals and dev chunks — network-first, fallback
+  // to cache. MUST stay ahead of (and now exclusive over) the asset branch:
+  // freshness wins for anything the framework versions by URL-stability.
+  if (url.pathname.startsWith("/_next/") || request.headers.get("RSC") === "1") {
+    event.respondWith(
+      (async () => {
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && networkResponse.ok && !networkResponse.redirected) {
+            const cache = await caches.open(PAGES_CACHE);
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        } catch (err) {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          // Return a minimal RSC response for offline
+          return new Response(null, { status: 503, statusText: "Offline" });
+        }
+      })()
+    );
+    return;
+  }
 });
 
 // Push notifications handler (ready for future use)

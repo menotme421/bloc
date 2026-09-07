@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase/config";
-import { verifySession } from "@/lib/dal";
+import { tryVerifySession } from "@/lib/dal";
 import { displayNameSchema } from "@/lib/definitions";
 
 export type SettingsState = {
@@ -24,7 +24,10 @@ export async function updateDisplayName(
     return { error: validated.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  await verifySession();
+  const session = await tryVerifySession();
+  if (!session) {
+    return { error: "Not authenticated." };
+  }
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -60,7 +63,11 @@ export async function deleteAccount(
   void prevState;
   void formData;
 
-  const { userId } = await verifySession();
+  const sess = await tryVerifySession();
+  if (!sess) {
+    return { error: "Not authenticated." };
+  }
+  const { userId } = sess;
   const supabase = await createSupabaseServerClient();
 
   // Best-effort data cleanup before the account is removed.

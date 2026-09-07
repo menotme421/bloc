@@ -30,6 +30,7 @@ import {
 import type { Note } from "@/lib/notes"
 import { NoteSidebarItem } from "@/components/note-sidebar-item"
 import { TagChip } from "@/components/tag-chip"
+import { useResolvedUserId } from "@/lib/use-resolved-user-id"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarGroup,
@@ -41,21 +42,42 @@ import {
 const RECENT_LIMIT = 5
 
 export function AppSidebar({
-  user,
-  userId,
+  userName,
+  userEmail,
+  userAvatar,
+  userId: userIdProp,
   recentNotes,
   ...props
 }: {
-  user: NavUserData
+  userName: string
+  userEmail: string
+  userAvatar?: string | null
   userId: string
   recentNotes?: Note[]
 } & React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useI18n()
+  const userId = useResolvedUserId(userIdProp)
   const isMobile = useIsMobile()
   const [searchOpen, setSearchOpen] = React.useState(false)
   const isNotePage = pathname.startsWith("/app/notes/")
+
+  const user = React.useMemo<NavUserData>(
+    () => ({ name: userName, email: userEmail, avatar: userAvatar }),
+    [userName, userEmail, userAvatar]
+  )
+
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setSearchOpen((v) => !v)
+      }
+    }
+    document.addEventListener("keydown", onKeyDown)
+    return () => document.removeEventListener("keydown", onKeyDown)
+  }, [])
 
   const recent = React.useSyncExternalStore(
     subscribeNotes,
@@ -93,13 +115,14 @@ export function AppSidebar({
           !local ||
           Date.parse(serverNote.updated_at) >= Date.parse(local.updated_at)
         ) {
-          upsertLocalNote(userId, serverNote)
+          upsertLocalNote(userId, serverNote, true)
         }
       }
     }
   }, [userId, recentNotes])
 
   function handleCreateNote() {
+    if (!userId) return
     const note = createLocalNote(userId)
     markNoteOpened(userId, note.id)
     router.push(`/app/notes/${note.id}`)
@@ -183,11 +206,13 @@ export function AppSidebar({
         <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />
-      <SearchCommand
-        open={searchOpen}
-        onOpenChange={setSearchOpen}
-        userId={userId}
-      />
+      {searchOpen && (
+        <SearchCommand
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          userId={userId}
+        />
+      )}
     </Sidebar>
   )
 }

@@ -17,9 +17,10 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import ProfileAvatar from "@/components/profile-avatar";
 import { useI18n } from "@/lib/i18n/provider";
+import { useResolvedUserId } from "@/lib/use-resolved-user-id";
 
 export function MobileHome({
-  userId,
+  userId: userIdProp,
   user,
 }: {
   userId: string;
@@ -28,6 +29,7 @@ export function MobileHome({
   const router = useRouter();
   const { t } = useI18n();
   const [view, setView] = React.useState<"grid" | "list">("grid");
+  const userId = useResolvedUserId(userIdProp);
 
   const storageKey = `bloc:home:view:${userId}`;
 
@@ -65,6 +67,7 @@ export function MobileHome({
   }, [allNotes]);
 
   function handleCreateNote() {
+    if (!userId) return;
     const note = createLocalNote(userId);
     markNoteOpened(userId, note.id);
     router.push(`/app/notes/${note.id}`);

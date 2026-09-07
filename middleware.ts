@@ -29,26 +29,42 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let isAuthed = false;
+  let authVerified = false;
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-  const isAuthed = !!user;
+    if (user) {
+      isAuthed = true;
+      authVerified = true;
+    } else if (!error) {
+      authVerified = true;
+    }
+  } catch {
+    // Unexpected error — allow request through
+  }
+
   const isProtected = pathname.startsWith("/app");
   const isAuthRoute = pathname.startsWith("/auth");
   const isCallback = pathname.startsWith("/auth/callback");
   const isLanding = pathname === "/";
 
-  if (isProtected && !isAuthed) {
-    return NextResponse.redirect(new URL("/auth", request.url));
-  }
+  // Only redirect if we successfully verified auth status
+  if (authVerified) {
+    if (isProtected && !isAuthed) {
+      return NextResponse.redirect(new URL("/auth", request.url));
+    }
 
-  if (isAuthRoute && !isCallback && isAuthed) {
-    return NextResponse.redirect(new URL("/app", request.url));
-  }
+    if (isAuthRoute && !isCallback && isAuthed) {
+      return NextResponse.redirect(new URL("/app", request.url));
+    }
 
-  if (isLanding && isAuthed) {
-    return NextResponse.redirect(new URL("/app", request.url));
+    if (isLanding && isAuthed) {
+      return NextResponse.redirect(new URL("/app", request.url));
+    }
   }
 
   return supabaseResponse;

@@ -150,6 +150,20 @@ function parse<T>(raw: string | null): T | null {
   }
 }
 
+function safeSetItem(key: string, value: string): boolean {
+  try {
+    window.localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "QuotaExceededError") {
+      console.error("[localStorage] Storage full. Key:", key);
+    } else {
+      console.error("[localStorage] Write failed. Key:", key, e);
+    }
+    return false;
+  }
+}
+
 /* ── Note cache ──────────────────────────────────────────── */
 
 export function getLocalNotes(userId: string): Note[] {
@@ -166,25 +180,32 @@ export function getLocalNotes(userId: string): Note[] {
 export function setLocalNotes(userId: string, notes: Note[]) {
   if (typeof window === "undefined") return;
 
-  try {
-    window.localStorage.setItem(storageKey(userId), JSON.stringify(notes));
-  } catch {}
+  safeSetItem(storageKey(userId), JSON.stringify(notes));
 }
 
 export function getLocalNote(userId: string, id: string): Note | null {
   return getLocalNotes(userId).find((n) => n.id === id) ?? null;
 }
 
-export function upsertLocalNote(userId: string, note: Note) {
+export function upsertLocalNote(userId: string, note: Note, silent = false) {
   const notes = getLocalNotes(userId);
   const index = notes.findIndex((n) => n.id === note.id);
   if (index >= 0) {
+    const existing = notes[index];
+    if (
+      existing.title === note.title &&
+      existing.content === note.content &&
+      existing.tag === note.tag &&
+      existing.updated_at === note.updated_at
+    ) {
+      return;
+    }
     notes[index] = note;
   } else {
     notes.unshift(note);
   }
   setLocalNotes(userId, notes);
-  notifyUpdated();
+  if (!silent) notifyUpdated();
 }
 
 export function removeLocalNote(userId: string, id: string) {
@@ -195,11 +216,24 @@ export function removeLocalNote(userId: string, id: string) {
   notifyUpdated();
 }
 
-function genNoteId() {
+function genNoteId(): string {
   try {
-    if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) {
+      return globalThis.crypto.randomUUID();
+    }
   } catch {}
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`;
+  // Fallback: generate a valid UUID v4 using getRandomValues
+  if (typeof globalThis !== "undefined" && globalThis.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  // Last resort: still format as UUID-like to pass zod validation loosely
+  // (this should rarely happen in modern browsers)
+  return "00000000-0000-4000-8000-000000000000";
 }
 
 export function createLocalNote(
@@ -207,6 +241,9 @@ export function createLocalNote(
   title = "",
   content = ""
 ): Note {
+  if (!userId) {
+    throw new Error("[local-notes] createLocalNote called with empty userId — resolve offline auth first.");
+  }
   const now = new Date().toISOString();
   const note: Note = {
     id: genNoteId(),
@@ -219,6 +256,78 @@ export function createLocalNote(
   upsertLocalNote(userId, note);
   addOutboxEntry(userId, { note, mode: "create" });
   return note;
+}
+
+/* ── Orphan adoption (empty-userId bucket) ─────────────────── */
+/* Notes created before offline auth resolves may land under "".
+   Move them (plus outbox/tombstones/recent/last) to the real uid once
+   known. Single-device assumption: merge, dedupe by id. */
+
+export function adoptOrphanedNotes(userId: string) {
+  if (typeof window === "undefined" || !userId) return;
+  const orphanKey = storageKey("");
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(orphanKey);
+  } catch {
+    return;
+  }
+  if (!raw) return;
+  let orphans: Note[] = [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) orphans = parsed as Note[];
+  } catch {
+    return;
+  }
+  if (orphans.length === 0) {
+    try {
+      window.localStorage.removeItem(orphanKey);
+    } catch {}
+    return;
+  }
+  const existing = new Map(getLocalNotes(userId).map((n) => [n.id, n]));
+  for (const n of orphans) {
+    if (!existing.has(n.id)) existing.set(n.id, n);
+  }
+  setLocalNotes(userId, [...existing.values()]);
+  // Move outbox entries too
+  try {
+    const orphanOutbox = parse<OutboxEntry[]>(window.localStorage.getItem(outboxKey("")));
+    if (Array.isArray(orphanOutbox) && orphanOutbox.length > 0) {
+      const current = getOutbox(userId);
+      const seen = new Set(current.map((e) => e.note.id));
+      for (const e of orphanOutbox) {
+        if (!seen.has(e.note.id)) {
+          current.push(e);
+          seen.add(e.note.id);
+        }
+      }
+      setOutbox(userId, current);
+    }
+    const orphanDeleted = parse<string[]>(window.localStorage.getItem(deletedKey("")));
+    if (Array.isArray(orphanDeleted) && orphanDeleted.length > 0) {
+      const current = new Set(getTombstones(userId));
+      for (const id of orphanDeleted) current.add(id);
+      setTombstones(userId, [...current]);
+    }
+    const orphanLast = window.localStorage.getItem(lastKey(""));
+    if (orphanLast && !getLastNoteId(userId)) setLastNoteId(userId, orphanLast);
+    const orphanRecent = parse<string[]>(window.localStorage.getItem(recentKey("")));
+    if (Array.isArray(orphanRecent) && orphanRecent.length > 0) {
+      const current = getRecentOpenedIds(userId);
+      const merged = [...orphanRecent.filter((id) => !current.includes(id)), ...current];
+      setRecentOpenedIds(userId, merged.slice(0, RECENT_OPENED_CAP));
+    }
+  } catch {}
+  try {
+    window.localStorage.removeItem(orphanKey);
+    window.localStorage.removeItem(outboxKey(""));
+    window.localStorage.removeItem(deletedKey(""));
+    window.localStorage.removeItem(lastKey(""));
+    window.localStorage.removeItem(recentKey(""));
+  } catch {}
+  notifyUpdated();
 }
 
 /* ── Outbox (unsynced changes) ───────────────────────────── */
@@ -235,9 +344,7 @@ export function getOutbox(userId: string): OutboxEntry[] {
 function setOutbox(userId: string, entries: OutboxEntry[]) {
   if (typeof window === "undefined") return;
 
-  try {
-    window.localStorage.setItem(outboxKey(userId), JSON.stringify(entries));
-  } catch {}
+  safeSetItem(outboxKey(userId), JSON.stringify(entries));
 }
 
 export function addOutboxEntry(userId: string, entry: OutboxEntry) {
@@ -269,9 +376,7 @@ export function getTombstones(userId: string): string[] {
 function setTombstones(userId: string, ids: string[]) {
   if (typeof window === "undefined") return;
 
-  try {
-    window.localStorage.setItem(deletedKey(userId), JSON.stringify(ids));
-  } catch {}
+  safeSetItem(deletedKey(userId), JSON.stringify(ids));
 }
 
 export function addTombstone(userId: string, id: string) {
@@ -297,9 +402,7 @@ export function getLastNoteId(userId: string): string | null {
 
 export function setLastNoteId(userId: string, id: string) {
   if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(lastKey(userId), id);
-  } catch {}
+  safeSetItem(lastKey(userId), id);
 }
 
 export function clearLastNoteId(userId: string) {
@@ -328,9 +431,7 @@ export function getRecentOpenedIds(userId: string): string[] {
 
 function setRecentOpenedIds(userId: string, ids: string[]) {
   if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(recentKey(userId), JSON.stringify(ids));
-  } catch {}
+  safeSetItem(recentKey(userId), JSON.stringify(ids));
 }
 
 export function markNoteOpened(userId: string, id: string) {

@@ -3,6 +3,7 @@
 import { ChevronsUpDown, LogOut, Settings2, Sparkles } from "lucide-react"
 
 import { signOut } from "@/app/(auth)/auth/actions"
+import { clearOfflineAuth } from "@/lib/auth-state"
 import {
   Avatar,
   AvatarImage,
@@ -30,8 +31,14 @@ export type NavUserData = {
   avatar?: string | null
 }
 
-export function NavUser({ user }: { user: NavUserData }) {
+export function NavUser({ user }: { user?: NavUserData | null }) {
   const { isMobile } = useSidebar()
+
+  // Defensive: AppLayout may render with empty session offline or during
+  // stale-bundle HMR. Never crash the whole sidebar on missing user.
+  if (!user) return null
+  const name = user.name || "User"
+  const email = user.email || ""
 
   return (
     <SidebarMenu>
@@ -43,12 +50,12 @@ export function NavUser({ user }: { user: NavUserData }) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-full">
-                <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                <ProfileAvatar name={user.name} size={32} />
+                <AvatarImage src={user.avatar ?? undefined} alt={name} />
+                <ProfileAvatar name={name} size={32} />
               </Avatar>
               <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate text-sm">{user.name}</span>
-                <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                <span className="truncate text-sm">{name}</span>
+                <span className="truncate text-xs text-muted-foreground">{email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -62,12 +69,12 @@ export function NavUser({ user }: { user: NavUserData }) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-full">
-                  <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                  <ProfileAvatar name={user.name} size={32} />
+                  <AvatarImage src={user.avatar ?? undefined} alt={name} />
+                  <ProfileAvatar name={name} size={32} />
                 </Avatar>
               <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate text-sm">{user.name}</span>
-                <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                <span className="truncate text-sm">{name}</span>
+                <span className="truncate text-xs text-muted-foreground">{email}</span>
               </div>
               </div>
             </DropdownMenuLabel>
@@ -87,7 +94,7 @@ export function NavUser({ user }: { user: NavUserData }) {
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <form action={signOut} className="contents">
-                <button type="submit" className="flex items-center gap-2 text-base">
+                <button type="submit" onClick={() => clearOfflineAuth()} className="flex items-center gap-2 text-base">
                   <LogOut />
                   Log out
                 </button>

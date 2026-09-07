@@ -89,6 +89,7 @@ import { addOutboxEntry, getLocalNote, getOutbox, isInOutbox, markNoteOpened, up
 import { syncNote, type SyncStatus } from "@/lib/note-sync";
 import { setSyncStatus } from "@/lib/note-status";
 import type { Note } from "@/lib/notes";
+import { useResolvedUserId } from "@/lib/use-resolved-user-id";
 import { SlashMenu, type SlashMenuController } from "@/components/slash-menu";
 import { TableUI } from "@/components/table-ui";
 import { BubbleMenu } from "@/components/bubble-menu";
@@ -105,7 +106,7 @@ const SAVE_DEBOUNCE_MS = 800;
 const SYNC_MAX_ROUNDS = 3;
 
 export function NoteEditor({
-  userId,
+  userId: userIdProp,
   note,
 }: {
   userId: string;
@@ -113,6 +114,13 @@ export function NoteEditor({
 }) {
   const params = useParams<{ id: string }>();
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
+
+  const userId = useResolvedUserId(userIdProp);
+  const userIdRef = React.useRef(userId);
+  React.useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+  const editorReadyRef = React.useRef(false);
 
   const [title, setTitle] = React.useState(note?.title ?? "");
   const [tag, setTag] = React.useState<string | null>(note?.tag ?? null);
@@ -240,7 +248,28 @@ export function NoteEditor({
           event.preventDefault();
           const file = files[0];
           const insertPos = _view.state.selection.from;
-          void uploadResourceFile(file, userId)
+          const insertPlaceholder = () => {
+            // Text-only offline v1: keep an editable text marker so no
+            // content is lost; user can re-add the image when online.
+            editorRef.current
+              ?.chain()
+              .focus()
+              .insertContentAt(insertPos, {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: `📷 ${file.name} (image pending upload — reconnect to add)`,
+                  },
+                ],
+              })
+              .run();
+          };
+          if (typeof navigator !== "undefined" && !navigator.onLine) {
+            insertPlaceholder();
+            return true;
+          }
+          void uploadResourceFile(file, userIdRef.current)
             .then((url) => {
               editorRef.current
                 ?.chain()
@@ -258,13 +287,17 @@ export function NoteEditor({
             })
             .catch((e) => {
               console.error("[paste] upload failed", e);
+              insertPlaceholder();
             });
           return true;
         },
       },
       onCreate: ({ editor: created }) => {
         editorRef.current = created;
-        handleResolve(created);
+        editorReadyRef.current = true;
+        if (userId) {
+          handleResolve(created);
+        }
       },
     },
     [note?.id]
@@ -272,9 +305,11 @@ export function NoteEditor({
 
   function handleResolve(editorInstance: Editor) {
     if (!id) return;
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) return;
 
     const server = note ?? null;
-    const local = getLocalNote(userId, id);
+    const local = getLocalNote(currentUserId, id);
 
     if (!local && !server) {
       setResolved("missing");
@@ -286,21 +321,21 @@ export function NoteEditor({
       setTag(local.tag ?? null);
       editorInstance.commands.setContent(local.content, { emitUpdate: false });
       editorInstance.commands.fixTables();
-      markNoteOpened(userId, id);
+      markNoteOpened(currentUserId, id);
       setResolved("ready");
-      if (!isInOutbox(userId, id)) {
-        addOutboxEntry(userId, { note: local, mode: "create" });
+      if (!isInOutbox(currentUserId, id)) {
+        addOutboxEntry(currentUserId, { note: local, mode: "create" });
       }
       void syncLoop("create");
       return;
     }
 
-    markNoteOpened(userId, id);
+    markNoteOpened(currentUserId, id);
 
     if (local && server) {
       const localTime = Date.parse(local.updated_at);
       const serverTime = Date.parse(server.updated_at);
-      const dirty = isInOutbox(userId, id) || localTime > serverTime;
+      const dirty = isInOutbox(currentUserId, id) || localTime > serverTime;
       if (dirty) {
         setTitle(local.title);
         setTag(local.tag ?? null);
@@ -308,40 +343,72 @@ export function NoteEditor({
           emitUpdate: false,
         });
         editorInstance.commands.fixTables();
-        if (!isInOutbox(userId, id)) {
-          addOutboxEntry(userId, { note: local, mode: "update" });
+        if (!isInOutbox(currentUserId, id)) {
+          addOutboxEntry(currentUserId, { note: local, mode: "update" });
         }
         setResolved("ready");
         void syncLoop("update");
         return;
       }
       if (localTime < serverTime) {
-        upsertLocalNote(userId, server);
+        upsertLocalNote(currentUserId, server);
       }
       setResolved("ready");
       return;
     }
 
     if (!local && server) {
-      upsertLocalNote(userId, server);
+      upsertLocalNote(currentUserId, server);
       setTag(server.tag ?? null);
       editorInstance.commands.fixTables();
       setResolved("ready");
     }
   }
 
+  React.useEffect(() => {
+    if (userId && editorReadyRef.current && editor) {
+      handleResolve(editor);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, editor]);
+
+  // Reconnect: drain outbox when browser goes back online.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onOnline = () => {
+      const uid = userIdRef.current;
+      if (!uid || !id) return;
+      const pending = getOutbox(uid).find((e) => e.note.id === id);
+      if (pending) void syncLoop(pending.mode);
+      else if (!navigator.onLine) return;
+      else {
+        // Even without pending entry, try a save-round to set badge right.
+        setSyncStatus(isInOutbox(uid, id) ? "offline" : "synced");
+      }
+    };
+    const onOffline = () => setSyncStatus("offline");
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   function handleTitleChange(value: string) {
     setTitle(value);
-    if (!id) return;
-    const existing = getLocalNote(userId, id);
+    const currentUserId = userIdRef.current;
+    if (!id || !currentUserId) return;
+    const existing = getLocalNote(currentUserId, id);
     if (!existing) return;
     const updated: Note = {
       ...existing,
       title: value,
       updated_at: new Date().toISOString(),
     };
-    upsertLocalNote(userId, updated);
-    addOutboxEntry(userId, { note: updated, mode: "update" });
+    upsertLocalNote(currentUserId, updated);
+    addOutboxEntry(currentUserId, { note: updated, mode: "update" });
     scheduleSave();
   }
 
@@ -358,16 +425,17 @@ export function NoteEditor({
   function handleTagChange(value: string | null) {
     setTag(value);
     setTagInput("");
-    if (!id) return;
-    const existing = getLocalNote(userId, id);
+    const currentUserId = userIdRef.current;
+    if (!id || !currentUserId) return;
+    const existing = getLocalNote(currentUserId, id);
     if (!existing) return;
     const updated: Note = {
       ...existing,
       tag: value,
       updated_at: new Date().toISOString(),
     };
-    upsertLocalNote(userId, updated);
-    addOutboxEntry(userId, { note: updated, mode: "update" });
+    upsertLocalNote(currentUserId, updated);
+    addOutboxEntry(currentUserId, { note: updated, mode: "update" });
     scheduleSave();
   }
 
@@ -406,19 +474,21 @@ export function NoteEditor({
 
   async function syncLoop(mode: "create" | "update") {
     if (syncingRef.current || !id) return;
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) return;
     syncingRef.current = true;
     try {
       setSyncStatus("saving");
       let status: SyncStatus = "offline";
       for (let round = 0; round < SYNC_MAX_ROUNDS; round++) {
-        const current = getLocalNote(userId, id);
+        const current = getLocalNote(currentUserId, id);
         if (!current) {
           status = "synced";
           break;
         }
-        status = await syncNote(userId, current, mode);
+        status = await syncNote(currentUserId, current, mode);
         mode = "update";
-        if (status === "synced" && !isInOutbox(userId, id)) break;
+        if (status === "synced" && !isInOutbox(currentUserId, id)) break;
         if (status === "offline") break;
       }
       setSyncStatus(status);
@@ -438,9 +508,11 @@ export function NoteEditor({
 
   function doSave() {
     if (!id || !editor) return;
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) return;
 
-    const existing = getLocalNote(userId, id);
-    const outboxEntry = getOutbox(userId).find((e) => e.note.id === id);
+    const existing = getLocalNote(currentUserId, id);
+    const outboxEntry = getOutbox(currentUserId).find((e) => e.note.id === id);
     const mode = outboxEntry?.mode ?? "update";
     const note: Note = {
       id,
@@ -451,8 +523,8 @@ export function NoteEditor({
       updated_at: new Date().toISOString(),
     };
 
-    upsertLocalNote(userId, note);
-    addOutboxEntry(userId, { note, mode });
+    upsertLocalNote(currentUserId, note);
+    addOutboxEntry(currentUserId, { note, mode });
     void syncLoop(mode);
   }
 

@@ -7,11 +7,13 @@ import { HomeIcon, SearchIcon, PlusIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createLocalNote, markNoteOpened } from "@/lib/local-notes";
 import { useI18n } from "@/lib/i18n/provider";
+import { useResolvedUserId } from "@/lib/use-resolved-user-id";
 
-export function MobileBottomNav({ userId }: { userId: string }) {
+export function MobileBottomNav({ userId: userIdProp }: { userId: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useI18n();
+  const userId = useResolvedUserId(userIdProp);
 
   const isHome = pathname === "/app/home";
   const isSearch = pathname === "/app/search";
@@ -20,6 +22,7 @@ export function MobileBottomNav({ userId }: { userId: string }) {
   if (isNotePage) return null;
 
   function handleCreateNote() {
+    if (!userId) return;
     const note = createLocalNote(userId);
     markNoteOpened(userId, note.id);
     router.push(`/app/notes/${note.id}`);

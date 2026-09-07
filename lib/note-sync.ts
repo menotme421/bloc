@@ -1,4 +1,4 @@
-import { createNote, deleteNote, listNotes, updateNote } from "@/app/app/notes/actions";
+import { createNote, deleteNote, listNotesResult, updateNote } from "@/app/app/notes/actions";
 import type { Note } from "@/lib/notes";
 import {
   clearLastNoteId,
@@ -101,22 +101,27 @@ export async function syncPending(userId: string) {
   }
 
   // Pull server state: delete local notes that were deleted on another device,
-  // and upsert any newer server notes
+  // and upsert any newer server notes. Only when the server round-trip
+  // succeeded — offline (ok:false) must never wipe or fake-clean locals.
   try {
-    const serverNotes = await listNotes();
-    const serverIds = new Set(serverNotes.map((n) => n.id));
-    const outboxIds = new Set(getOutbox(userId).map((e) => e.note.id));
-    const tombIds = new Set(getTombstones(userId));
-    for (const local of getLocalNotes(userId)) {
-      if (!serverIds.has(local.id) && !outboxIds.has(local.id) && !tombIds.has(local.id)) {
-        removeLocalNote(userId, local.id);
-        if (getLastNoteId(userId) === local.id) clearLastNoteId(userId);
+    const pulled = await listNotesResult();
+    if (!pulled.ok) return;
+    const serverNotes = pulled.notes;
+    if (serverNotes.length > 0 || getLocalNotes(userId).length === 0) {
+      const serverIds = new Set(serverNotes.map((n) => n.id));
+      const outboxIds = new Set(getOutbox(userId).map((e) => e.note.id));
+      const tombIds = new Set(getTombstones(userId));
+      for (const local of getLocalNotes(userId)) {
+        if (!serverIds.has(local.id) && !outboxIds.has(local.id) && !tombIds.has(local.id)) {
+          removeLocalNote(userId, local.id);
+          if (getLastNoteId(userId) === local.id) clearLastNoteId(userId);
+        }
       }
-    }
-    for (const serverNote of serverNotes) {
-      const local = getLocalNotes(userId).find((n) => n.id === serverNote.id);
-      if (!local || Date.parse(serverNote.updated_at) > Date.parse(local.updated_at)) {
-        upsertLocalNote(userId, serverNote);
+      for (const serverNote of serverNotes) {
+        const local = getLocalNotes(userId).find((n) => n.id === serverNote.id);
+        if (!local || Date.parse(serverNote.updated_at) > Date.parse(local.updated_at)) {
+          upsertLocalNote(userId, serverNote);
+        }
       }
     }
   } catch {

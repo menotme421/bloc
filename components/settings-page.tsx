@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import { Loader2, Monitor, Moon, Sun, Trash2, TriangleAlert, GlobeIcon, ChevronDownIcon, CheckIcon, LogOut } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import {
   type SettingsState,
 } from "@/app/app/settings/actions";
 import { signOut } from "@/app/(auth)/auth/actions";
+import { clearOfflineAuth } from "@/lib/auth-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -221,7 +222,7 @@ function SignOutCard() {
       </CardHeader>
       <CardContent>
         <form action={signOut}>
-          <Button type="submit" variant="outline" className="w-full justify-center gap-2">
+          <Button type="submit" onClick={() => clearOfflineAuth()} variant="outline" className="w-full justify-center gap-2">
             <LogOut className="size-4" />
             {t("settings.signOut.button")}
           </Button>
