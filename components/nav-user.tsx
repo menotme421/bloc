@@ -80,13 +80,13 @@ export function NavUser({ user }: { user?: NavUserData | null }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="text-base">
-                <Sparkles />
+              <DropdownMenuItem>
+                <Sparkles className="size-4" />
                 Upgrade to Pro
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-base" asChild>
+              <DropdownMenuItem asChild>
                 <a href="/app/settings">
-                  <Settings2 />
+                  <Settings2 className="size-4" />
                   Settings
                 </a>
               </DropdownMenuItem>
@@ -94,8 +94,8 @@ export function NavUser({ user }: { user?: NavUserData | null }) {
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <form action={signOut} className="contents">
-                <button type="submit" onClick={() => clearOfflineAuth()} className="flex items-center gap-2 text-base">
-                  <LogOut />
+                <button type="submit" onClick={() => clearOfflineAuth()} className="flex items-center gap-2">
+                  <LogOut className="size-4" />
                   Log out
                 </button>
               </form>

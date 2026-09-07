@@ -141,7 +141,7 @@ export function MobileHome({
               className="mt-3"
               onClick={handleCreateNote}
             >
-              <PlusIcon />
+              <PlusIcon className="size-3.5" />
               {t("home.createNote")}
             </Button>
           </div>
@@ -172,7 +172,7 @@ export function MobileHome({
               className="mt-4"
               onClick={handleCreateNote}
             >
-              <PlusIcon />
+              <PlusIcon className="size-3.5" />
               {t("home.newNote")}
             </Button>
           </div>

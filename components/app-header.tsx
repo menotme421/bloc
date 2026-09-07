@@ -156,14 +156,14 @@ export function AppHeader({ userId: userIdProp }: { userId: string }) {
                 size="icon-sm"
                 aria-label="Note actions"
               >
-                <EllipsisIcon />
+                <EllipsisIcon className="size-4" />
                 <span className="sr-only">Note actions</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-44">
               <DropdownMenuLabel>Note actions</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => setHistoryOpen(true)}>
-                <RotateCcwClockIcon />
+                <RotateCcwClockIcon className="size-4" />
                 History
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -75,6 +75,20 @@ export function NoteHistory({
   const [versions, setVersions] = React.useState<NoteVersion[]>([]);
   const [error, setError] = React.useState<string | null>(null);
   const [restoringId, setRestoringId] = React.useState<string | null>(null);
+  const [isOnline, setIsOnline] = React.useState(
+    () => typeof navigator === "undefined" || navigator.onLine
+  );
+
+  React.useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -136,7 +150,12 @@ export function NoteHistory({
           <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
         ) : error ? (
           <div className="rounded-xl border border-dashed p-6 text-center">
-            <p className="text-sm font-medium">History unavailable offline</p>
+            <p className="text-sm font-medium">Could not load history</p>
+            {!isOnline && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                You appear to be offline. History needs a connection — reconnect and retry.
+              </p>
+            )}
             <p className="mt-1 text-xs text-muted-foreground">{error}</p>
             <Button variant="outline" size="sm" className="mt-4" onClick={() => void load()}>
               Retry

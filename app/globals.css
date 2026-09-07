@@ -6,22 +6,21 @@
 
 /* ═══════════════════════════════════════════════════════════════
    BLOC. DESIGN SYSTEM
-   Shadcn/ui default (neutral base) + brand accent.
+   Shadcn preset b4NKKx0xE (radix-vega, mauve base) + app extras.
 
    TABLE OF CONTENTS
    1. Tailwind mapping  — exposes tokens as Tailwind classes
-   2. Light tokens      — shadcn default + brand + status extras
+   2. Light tokens      — preset tokens + status extras
    3. Dark tokens       — semantic overrides only
    4. Base layer        — browser-level element defaults
    5. Note editor       — TipTap rich-text content (editable + previews)
    ═══════════════════════════════════════════════════════════════ */
 
-
 /* ─────────────────────────────────────────────────────────────
    1. TAILWIND v4 MAPPING
    ───────────────────────────────────────────────────────────── */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
 
   --color-background: var(--background);
@@ -67,40 +66,35 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --font-heading: var(--font-sans);
 }
-
 
 /* ─────────────────────────────────────────────────────────────
    2. LIGHT TOKENS
-   Shadcn default (neutral). Brand drives --primary and --ring;
-   status colors are app extras (auth validation, sync badges).
+   Preset b4NKKx0xE (mauve); status colors are app extras
+   (auth validation, sync badges).
    ───────────────────────────────────────────────────────────── */
 :root {
   --radius: 0.625rem;
-
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.145 0.008 326);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.145 0.008 326);
 
-  /* Brand — single source of truth */
-  --brand: oklch(0.670 0.181 290.9);
-  --primary: var(--brand);
-  --primary-foreground: oklch(0.14 0 0);
+  --primary: oklch(0.491 0.27 292.581);
+  --primary-foreground: oklch(0.969 0.016 293.756);
 
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.96 0.003 325.6);
+  --muted-foreground: oklch(0.542 0.034 322.5);
+  --accent: oklch(0.96 0.003 325.6);
+  --accent-foreground: oklch(0.212 0.019 322.12);
 
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: var(--brand);
+  --border: oklch(0.922 0.005 325.62);
+  --input: oklch(0.922 0.005 325.62);
+  --ring: oklch(0.711 0.019 323.02);
 
   /* App extras */
   --success: #1a9e5c;
@@ -108,71 +102,71 @@
   --info: #2563eb;
   --switch-background: #d1d0db;
 
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --chart-1: oklch(0.827 0.119 306.383);
+  --chart-2: oklch(0.627 0.265 303.9);
+  --chart-3: oklch(0.558 0.288 302.321);
+  --chart-4: oklch(0.496 0.265 301.924);
+  --chart-5: oklch(0.438 0.218 303.724);
 
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-foreground: oklch(0.145 0.008 326);
+  --sidebar-primary: oklch(0.541 0.281 293.009);
+  --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
+  --sidebar-accent: oklch(0.96 0.003 325.6);
+  --sidebar-accent-foreground: oklch(0.212 0.019 322.12);
+  --sidebar-border: oklch(0.922 0.005 325.62);
+  --sidebar-ring: oklch(0.711 0.019 323.02);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0.008 326);
 }
-
 
 /* ─────────────────────────────────────────────────────────────
    3. DARK TOKENS
    Only override semantic tokens — primitives stay the same.
    ───────────────────────────────────────────────────────────── */
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.145 0.008 326);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.212 0.019 322.12);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.212 0.019 322.12);
   --popover-foreground: oklch(0.985 0 0);
 
-  --primary: var(--brand);
-  --primary-foreground: oklch(0.14 0 0);
+  --primary: oklch(0.432 0.232 292.759);
+  --primary-foreground: oklch(0.969 0.016 293.756);
 
-  --secondary: oklch(0.269 0 0);
+  --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --muted: oklch(0.263 0.024 320.12);
+  --muted-foreground: oklch(0.711 0.019 323.02);
+  --accent: oklch(0.263 0.024 320.12);
   --accent-foreground: oklch(0.985 0 0);
 
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: var(--brand);
+  --ring: oklch(0.542 0.034 322.5);
 
   --success: #3ccd84;
   --warning: #e8a33d;
   --info: #6ea5f7;
   --switch-background: #4a3f7a;
 
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  --chart-1: oklch(0.827 0.119 306.383);
+  --chart-2: oklch(0.627 0.265 303.9);
+  --chart-3: oklch(0.558 0.288 302.321);
+  --chart-4: oklch(0.496 0.265 301.924);
+  --chart-5: oklch(0.438 0.218 303.724);
 
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: oklch(0.212 0.019 322.12);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-primary: oklch(0.606 0.25 292.717);
+  --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
+  --sidebar-accent: oklch(0.263 0.024 320.12);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.542 0.034 322.5);
 }
-
 
 /* ─────────────────────────────────────────────────────────────
    4. BASE LAYER
@@ -188,6 +182,7 @@
        DevTools mouse emulation ignores this, so bug only appears on physical phones. */
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    @apply font-sans;
   }
 
   body {
@@ -202,7 +197,6 @@
     touch-action: manipulation;
   }
 }
-
 
 /* ─────────────────────────────────────────────────────────────
    5. NOTE EDITOR
