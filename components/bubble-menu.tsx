@@ -30,6 +30,8 @@ import {
 
 import { cn } from "@/lib/utils";
 import { getLocalNotes } from "@/lib/local-notes";
+import { convertBlock } from "@/lib/blocks/convert-block";
+import type { BlockType } from "@/lib/blocks/block-config";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -86,85 +88,111 @@ const TURN_INTO_ITEMS: {
     id: "paragraph",
     label: "Paragraph",
     icon: TypeIcon,
-    apply: (editor) => editor.chain().focus().clearNodes().setParagraph().run(),
+    apply: (editor) => {
+      const ok = convertBlock(editor, "paragraph" as BlockType);
+      console.log("[bubble] turnInto paragraph", ok);
+    },
     isActive: (editor) => editor.isActive("paragraph"),
   },
   {
     id: "h1",
     label: "Heading 1",
     icon: Heading1Icon,
-    apply: (editor) => editor.chain().focus().clearNodes().setHeading({ level: 1 }).run(),
+    apply: (editor) => {
+      const ok = convertBlock(editor, "h1" as BlockType);
+      console.log("[bubble] turnInto h1", ok);
+    },
     isActive: (editor) => editor.isActive("heading", { level: 1 }),
   },
   {
     id: "h2",
     label: "Heading 2",
     icon: Heading2Icon,
-    apply: (editor) => editor.chain().focus().clearNodes().setHeading({ level: 2 }).run(),
+    apply: (editor) => {
+      const ok = convertBlock(editor, "h2" as BlockType);
+      console.log("[bubble] turnInto h2", ok);
+    },
     isActive: (editor) => editor.isActive("heading", { level: 2 }),
   },
   {
     id: "h3",
     label: "Heading 3",
     icon: Heading3Icon,
-    apply: (editor) => editor.chain().focus().clearNodes().setHeading({ level: 3 }).run(),
+    apply: (editor) => {
+      const ok = convertBlock(editor, "h3" as BlockType);
+      console.log("[bubble] turnInto h3", ok);
+    },
     isActive: (editor) => editor.isActive("heading", { level: 3 }),
   },
   {
     id: "bulletList",
     label: "Bullet List",
     icon: ListIcon,
-    apply: (editor) => editor.chain().focus().toggleBulletList().run(),
+    apply: (editor) => {
+      const ok = convertBlock(editor, "bulletList" as BlockType);
+      console.log("[bubble] turnInto bulletList", ok);
+    },
     isActive: (editor) => editor.isActive("bulletList"),
   },
   {
     id: "orderedList",
     label: "Ordered List",
     icon: ListOrderedIcon,
-    apply: (editor) => editor.chain().focus().toggleOrderedList().run(),
+    apply: (editor) => {
+      const ok = convertBlock(editor, "orderedList" as BlockType);
+      console.log("[bubble] turnInto orderedList", ok);
+    },
     isActive: (editor) => editor.isActive("orderedList"),
   },
   {
     id: "taskList",
     label: "Checklist",
     icon: ListTodoIcon,
-    apply: (editor) => editor.chain().focus().toggleTaskList().run(),
+    apply: (editor) => {
+      const ok = convertBlock(editor, "taskList" as BlockType);
+      console.log("[bubble] turnInto taskList", ok);
+    },
     isActive: (editor) => editor.isActive("taskList"),
   },
   {
     id: "blockquote",
     label: "Quote",
     icon: QuoteIcon,
-    apply: (editor) => editor.chain().focus().clearNodes().toggleBlockquote().run(),
+    apply: (editor) => {
+      const ok = convertBlock(editor, "blockquote" as BlockType);
+      console.log("[bubble] turnInto blockquote", ok);
+    },
     isActive: (editor) => editor.isActive("blockquote"),
   },
   {
     id: "codeBlock",
     label: "Code Block",
     icon: Code2Icon,
-    apply: (editor) => editor.chain().focus().clearNodes().setCodeBlock().run(),
+    apply: (editor) => {
+      const ok = convertBlock(editor, "codeBlock" as BlockType);
+      console.log("[bubble] turnInto codeBlock", ok);
+    },
     isActive: (editor) => editor.isActive("codeBlock"),
   },
 ];
 
-function ToolbarButton({
-  active,
-  disabled,
-  label,
-  onMouseDown,
-  onClick,
-  children,
-  ...rest
-}: {
-  active?: boolean;
-  disabled?: boolean;
-  label: string;
-  onMouseDown?: React.MouseEventHandler<HTMLButtonElement>;
-  onClick?: React.MouseEventHandler<HTMLButtonElement>;
-  children: React.ReactNode;
-} & React.ComponentPropsWithoutRef<"button">) {
+const ToolbarButton = React.forwardRef<
+  HTMLButtonElement,
+  {
+    active?: boolean;
+    disabled?: boolean;
+    label: string;
+    onMouseDown?: React.MouseEventHandler<HTMLButtonElement>;
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    children: React.ReactNode;
+  } & React.ComponentPropsWithoutRef<"button">
+>(function ToolbarButton(
+  { active, disabled, label, onMouseDown, onClick, children, className, ...rest },
+  ref
+) {
   return (
     <button
+      ref={ref}
       type="button"
       title={label}
       aria-label={label}
@@ -176,13 +204,14 @@ function ToolbarButton({
         "flex size-7 items-center justify-center rounded-md text-foreground transition-colors",
         active
           ? "bg-secondary text-secondary-foreground"
-          : "hover:bg-secondary"
+          : "hover:bg-secondary",
+        className
       )}
     >
       {children}
     </button>
   );
-}
+});
 
 function ColorSwatch({
   color,
@@ -380,13 +409,16 @@ export function BubbleMenu({
   React.useEffect(() => {
     if (!editor) return;
     const t = setInterval(() => {
+      // Never remount while a dropdown panel is open — that would unmount
+      // the open menu and swallow the click (no console log, menu just closes).
+      if (openPanel) return;
       if (editor.state.selection.empty) return;
       if (hiddenRef.current) return;
       if (!menuEl || menuEl.isConnected) return;
       setBubbleGen((g) => g + 1);
     }, 800);
     return () => clearInterval(t);
-  }, [editor, menuEl]);
+  }, [editor, menuEl, openPanel]);
 
   const shouldShow = React.useCallback(
     ({ editor: e }: { editor: Editor }) => {
@@ -506,7 +538,10 @@ export function BubbleMenu({
 
       <DropdownMenu
         open={openPanel === "textColor"}
-        onOpenChange={(open) => setOpenPanel(open ? "textColor" : null)}
+        onOpenChange={(open) => {
+          console.log("[bubble] textColor dropdown", open);
+          setOpenPanel(open ? "textColor" : null);
+        }}
       >
         <DropdownMenuTrigger asChild>
           <ToolbarButton label="Text color" onMouseDown={(e) => e.stopPropagation()}>
@@ -519,7 +554,7 @@ export function BubbleMenu({
             />
           </ToolbarButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="top" container={menuEl}>
+        <DropdownMenuContent align="start" side="top">
           <DropdownMenuLabel>Text color</DropdownMenuLabel>
           <div className="flex flex-wrap gap-1 px-1.5 py-1">
             {TEXT_COLORS.map(({ name, value }) => (
@@ -544,7 +579,10 @@ export function BubbleMenu({
 
       <DropdownMenu
         open={openPanel === "highlight"}
-        onOpenChange={(open) => setOpenPanel(open ? "highlight" : null)}
+        onOpenChange={(open) => {
+          console.log("[bubble] highlight dropdown", open);
+          setOpenPanel(open ? "highlight" : null);
+        }}
       >
         <DropdownMenuTrigger asChild>
           <ToolbarButton
@@ -555,7 +593,7 @@ export function BubbleMenu({
             <HighlighterIcon className="size-4" />
           </ToolbarButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="top" container={menuEl}>
+        <DropdownMenuContent align="start" side="top">
           <DropdownMenuLabel>Highlight color</DropdownMenuLabel>
           <div className="flex flex-wrap gap-1 px-1.5 py-1">
             {HIGHLIGHT_COLORS.map(({ name, value }) => (
@@ -580,49 +618,67 @@ export function BubbleMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DropdownMenu
-        open={openPanel === "turnInto"}
-        onOpenChange={(open) => setOpenPanel(open ? "turnInto" : null)}
-      >
-        <DropdownMenuTrigger asChild>
-          <ToolbarButton label="Turn into" onMouseDown={(e) => e.stopPropagation()}>
-            <TurnIntoIcon className="size-4" />
-            <ChevronDownIcon
-              className={cn(
-                "-ml-0.5 size-3 text-muted-foreground transition-transform",
-                openPanel === "turnInto" && "rotate-180"
-              )}
-            />
-          </ToolbarButton>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          side="top"
-          container={menuEl}
-          className="w-max"
+      {/* Turn-into uses an inline panel (not Radix) on purpose: Radix portals
+          steal editor focus and the Tiptap hide race swallows item clicks
+          (dropdown opens but onSelect never fires). Plain buttons with
+          onMouseDown={preventDefault} keep the selection — same pattern as
+          the Bold/Italic buttons above, which work reliably. */}
+      <div className="relative">
+        <ToolbarButton
+          label="Turn into"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            console.log("[bubble] turnInto toggle", openPanel);
+            setOpenPanel(openPanel === "turnInto" ? null : "turnInto");
+          }}
         >
-          <DropdownMenuGroup>
+          <TurnIntoIcon className="size-4" />
+          <ChevronDownIcon
+            className={cn(
+              "-ml-0.5 size-3 text-muted-foreground transition-transform",
+              openPanel === "turnInto" && "rotate-180"
+            )}
+          />
+        </ToolbarButton>
+        {openPanel === "turnInto" && (
+          <div
+            role="menu"
+            className="absolute top-full left-0 z-50 mt-2 w-max rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+          >
             {TURN_INTO_ITEMS.map((item) => {
               const Icon = item.icon;
               const active = item.isActive(editor);
               return (
-                <DropdownMenuItem
+                <button
                   key={item.id}
+                  type="button"
+                  role="menuitem"
+                  data-testid={`turn-into-${item.id}`}
                   onMouseDown={(e) => e.preventDefault()}
-                  onSelect={() => {
-                    item.apply(editor);
+                  onClick={() => {
+                    console.log("[bubble] turnInto select", item.id, {
+                      from: editor.state.selection.from,
+                      to: editor.state.selection.to,
+                      empty: editor.state.selection.empty,
+                    });
+                    try {
+                      item.apply(editor);
+                    } catch (err) {
+                      console.error("[bubble] turnInto apply error", item.id, err);
+                    }
                     setOpenPanel(null);
                   }}
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
                 >
                   <Icon className="size-4 text-muted-foreground" />
                   <span className="flex-1 whitespace-nowrap">{item.label}</span>
                   {active && <CheckIcon className="size-4 text-primary" />}
-                </DropdownMenuItem>
+                </button>
               );
             })}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          </div>
+        )}
+      </div>
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 

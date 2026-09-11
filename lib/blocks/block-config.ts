@@ -17,6 +17,21 @@ import {
   InfoIcon,
 } from "lucide-react";
 
+function deleteSlashRange(editor: Editor, from?: number, to?: number): void {
+  if (from === undefined || to === undefined) return;
+  if (from === to) return;
+  try {
+    const size = editor.state.doc.content.size;
+    const f = Math.max(0, Math.min(from, size));
+    const t = Math.max(0, Math.min(to, size));
+    if (f === t) return;
+    // validate resolvable
+    editor.state.doc.resolve(f);
+    editor.state.doc.resolve(t);
+    editor.chain().focus().deleteRange({ from: f, to: t }).run();
+  } catch {}
+}
+
 export type BlockCategory = "Text" | "List" | "Media" | "Code" | "Advanced";
 
 export type BlockType =
@@ -68,9 +83,9 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: Heading1Icon,
     aliases: ["h1", "heading 1", "title"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.setHeading({ level: 1 }).run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().clearNodes().setHeading({ level: 1 }).run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
   {
@@ -81,9 +96,9 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: Heading2Icon,
     aliases: ["h2", "heading 2", "subtitle"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.setHeading({ level: 2 }).run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().clearNodes().setHeading({ level: 2 }).run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
   {
@@ -94,9 +109,9 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: Heading3Icon,
     aliases: ["h3", "heading 3"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.setHeading({ level: 3 }).run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().clearNodes().setHeading({ level: 3 }).run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
   {
@@ -107,9 +122,9 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: QuoteIcon,
     aliases: ["quote", "blockquote"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.toggleBlockquote().run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().clearNodes().toggleBlockquote().run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
   {
@@ -120,9 +135,9 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: ListIcon,
     aliases: ["bullet", "bulleted", "ul", "list"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.toggleBulletList().run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().clearNodes().toggleBulletList().run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
   {
@@ -133,9 +148,9 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: ListOrderedIcon,
     aliases: ["ordered", "ol", "numbered", "number"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.toggleOrderedList().run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().clearNodes().toggleOrderedList().run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
   {
@@ -146,9 +161,9 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: ListTodoIcon,
     aliases: ["task", "todo", "check", "checkbox"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.toggleTaskList().run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().clearNodes().toggleTaskList().run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
   {
@@ -159,9 +174,8 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: ShapesIcon,
     aliases: ["resource", "image", "media", "file", "upload"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.insertContent({ type: "resource" }).run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().insertContent({ type: "resource" }).run();
     },
   },
   {
@@ -172,9 +186,9 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: MinusIcon,
     aliases: ["divider", "hr", "line", "separator", "rule"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.setHorizontalRule().run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().clearNodes().setHorizontalRule().run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
   {
@@ -185,9 +199,9 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: Code2Icon,
     aliases: ["code", "pre", "code block"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.setCodeBlock().run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().clearNodes().setCodeBlock().run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
   {
@@ -199,9 +213,8 @@ export const BLOCK_DEFS: BlockDef[] = [
     aliases: ["table", "grid", "rows", "columns"],
     insert: (editor, from, to) => {
       if (editor.isActive("tableCell") || editor.isActive("tableHeader")) return;
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
-      chain.insertTable({ rows: 2, cols: 3, withHeaderRow: true }).run();
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().insertTable({ rows: 2, cols: 3, withHeaderRow: true }).run();
     },
   },
   {
@@ -212,10 +225,10 @@ export const BLOCK_DEFS: BlockDef[] = [
     icon: InfoIcon,
     aliases: ["callout", "info", "alert"],
     insert: (editor, from, to) => {
-      const chain = editor.chain().focus();
-      if (from !== undefined && to !== undefined) chain.deleteRange({ from, to });
+      deleteSlashRange(editor, from, to);
       // fallback to blockquote as callout if not supported
-      chain.toggleBlockquote().run();
+      editor.chain().focus().clearNodes().toggleBlockquote().run();
+      try { editor.chain().focus().scrollIntoView().run(); } catch {}
     },
   },
 ];

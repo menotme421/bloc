@@ -213,13 +213,16 @@
   }
 
   /* ── Drag handle (DragHandle extension) ──────────────── */
+  /* Gap vs text is owned by floating-ui `offset({ mainAxis: 8 })`
+     in note-editor.tsx — keep CSS margin at 0 so the gap isn't
+     reduced by pushing the handle back toward the text. */
   .drag-handle {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 1.5rem;
     height: 1.5rem;
-    margin-left: 0.125rem;
+    margin-left: 0;
     border-radius: var(--radius-sm);
     color: var(--muted-foreground);
     background-color: transparent;
@@ -237,6 +240,35 @@
 
   .drag-handle:active {
     cursor: grabbing;
+  }
+
+  /* Invisible hover bridge covering exactly the 8px floating-ui gap.
+     Capped at 8px so it never overlaps the text glyph itself.
+     Keeps wrapper.contains(relatedTarget) true while crossing the gap,
+     so the extension's mouseleave hide doesn't fire mid-travel. */
+  .drag-handle::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 100%;
+    width: 8px;
+    background: transparent;
+  }
+
+  /* List rows are indented 1.5rem (see ul/ol padding-left below), which
+     would park their handle over the marker gutter. Shift listItem
+     handles one indent left into the paragraph lane (keep in sync with
+     ul/ol padding-left). taskItem needs no shift: taskList has
+     padding-left 0 and is already lane-aligned. */
+  .drag-handle[data-target="listItem"] {
+    transform: translateX(-1.5rem);
+  }
+
+  /* Pave the marker-zone dead strip for shifted handles: 24px lane
+     shift + 8px gap = 32px, ending exactly at the row text. */
+  .drag-handle[data-target="listItem"]::after {
+    width: 32px;
   }
 
   .note-content .ProseMirror-selectednode,
@@ -279,6 +311,25 @@
   .note-content ol { list-style: decimal; }
 
   .note-content li { margin: 0.25rem 0; }
+
+  /* TipTap emits <li><p>…</p></li> (+ nested <ul>/<ol> inside <li>).
+     Reset the paragraph margin inside li so nested rhythm doesn't
+     collapse/overlap, and give nested lists their own indent + marker
+     so child markers don't stack on the parent marker. */
+  .note-content li > p { margin: 0; }
+
+  .note-content li > ul,
+  .note-content li > ol { margin: 0.25rem 0 0; }
+
+  .note-content ul ul,
+  .note-content ul ol,
+  .note-content ol ol,
+  .note-content ol ul { margin-bottom: 0; }
+
+  .note-content ul ul { list-style-type: circle; }
+  .note-content ul ul ul { list-style-type: square; }
+  .note-content ol ol { list-style-type: lower-alpha; }
+  .note-content ol ol ol { list-style-type: lower-roman; }
 
   .note-content ul[data-type="taskList"] {
     list-style: none;
@@ -854,6 +905,28 @@
   }
 
   .note-content > .tableWrapper:hover {
+    background-color: transparent;
+  }
+
+  /* Per-row list hover: each li gets the same wash as top-level blocks.
+     :hover matches ancestors too, so zero out the list wrapper while a
+     row is hovered, and zero out ancestor rows for nested lists so only
+     the innermost hovered row keeps the wash. */
+  .note-content li {
+    border-radius: var(--radius-sm);
+    transition: background-color 150ms ease;
+  }
+
+  .note-content li:hover {
+    background-color: color-mix(in srgb, var(--foreground) 5%, transparent);
+  }
+
+  .note-content ul:has(> li:hover),
+  .note-content ol:has(> li:hover) {
+    background-color: transparent;
+  }
+
+  .note-content li:has(li:hover) {
     background-color: transparent;
   }
 

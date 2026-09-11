@@ -15,6 +15,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { BLOCK_DEFS, TURN_INTO_MAP, type BlockType } from "@/lib/blocks/block-config";
+import { convertBlockAtPos } from "@/lib/blocks/convert-block";
 
 type Props = {
   editor: Editor | null;
@@ -445,34 +446,17 @@ export function BlockActionMenu({ editor, isMobile, contentRef }: Props) {
     if (!editor || selectedRef.current == null) return;
     const pos = selectedRef.current.pos;
     console.log("[block-action] tap turnInto", { pos, def: def.id });
-    // Clear current block type first to handle wrappers (blockquote, lists) correctly
     try {
-      // Find valid inline pos inside target block
-      let selPos = pos + 1;
-      try {
-        const doc = editor.state.doc;
-        const $pos = doc.resolve(pos);
-        const found = findDocBlock($pos);
-        if (found && ["blockquote", "bulletList", "orderedList", "taskList"].includes(found.node.type.name)) {
-          for (let p = pos + 1; p < pos + found.node.nodeSize && p < doc.content.size; p++) {
-            try {
-              const $p = doc.resolve(p);
-              if ($p.parent.inlineContent) { selPos = p; break; }
-            } catch {}
-          }
-        }
-      } catch {}
-      // Clear existing block structure before converting
-      const okClear = editor.chain().focus().clearNodes().run();
-      console.log("[block-action] turnInto clearNodes", okClear);
-      const okSel = editor.chain().focus().setTextSelection(selPos).run();
-      console.log("[block-action] turnInto setSelection", { pos, selPos, okSel });
-      const ok = def.insert(editor, undefined, undefined);
-      console.log("[block-action] turnInto insert", { def: def.id, ok });
-      editor.chain().focus().scrollIntoView().run();
+      // Single-transaction convert handles list<->list and list->text correctly
+      // via clearNodes + toggle/set in one chain with clamped selection.
+      const ok = convertBlockAtPos(editor, pos, def.id as BlockType);
+      console.log("[block-action] turnInto convert", { def: def.id, ok });
+      if (!ok) {
+        // Fallback: try direct insert (e.g. table/resource)
+        def.insert(editor, undefined, undefined);
+      }
     } catch (e) {
       console.error("[block-action] turnInto failed", e);
-      // Fallback: try direct insert
       try { def.insert(editor, undefined, undefined); } catch {}
     }
     setTurnInto(false);

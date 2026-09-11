@@ -14,6 +14,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import DragHandle from "@tiptap/extension-drag-handle";
+import { offset } from "@floating-ui/dom";
 import { TableKit } from "@tiptap/extension-table";
 import {
   ColoredTableCell,
@@ -101,6 +102,7 @@ import { MiniToolbar } from "@/components/mobile/mini-toolbar";
 import { BlockPickerSheet } from "@/components/mobile/block-picker-sheet";
 import { BlockActionMenu } from "@/components/mobile/block-action-menu";
 import { MobileSlashInterceptor } from "@/lib/extensions/mobile-slash-interceptor";
+import { looksLikeMarkdown, markdownToTiptapNodes } from "@/lib/blocks/markdown-paste";
 
 const SAVE_DEBOUNCE_MS = 800;
 const SYNC_MAX_ROUNDS = 3;
@@ -137,6 +139,7 @@ export function NoteEditor({
   const slashControllerRef = React.useRef<SlashMenuController | null>(null);
   const tableAnchorRef = React.useRef<{ pos: number } | null>(null);
   const editorRef = React.useRef<Editor | null>(null);
+  const dragHandleElRef = React.useRef<HTMLElement | null>(null);
 
   const isMobile = useIsMobile();
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -181,14 +184,26 @@ export function NoteEditor({
         ColoredTableHeader,
         Resource.configure({ userId }),
         DragHandle.configure({
+          computePositionConfig: {
+            placement: "left-start",
+            strategy: "absolute",
+            middleware: [offset({ mainAxis: 8 })],
+          },
           render: () => {
             const element = document.createElement("div");
             element.className = "drag-handle";
             element.innerHTML =
               '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>';
+            dragHandleElRef.current = element;
             return element;
           },
           nested: {
+            // 'none' disables edge-proximity deduction so each listItem/taskItem
+            // wins over the list wrapper both centered and in the gutter —
+            // every bullet/number row gets its own handle like paragraphs.
+            // Whole-list move stays available via block menu / turn-into
+            // (findDocBlock), which intentionally remain whole-list.
+            edgeDetection: "none",
             rules: [
               {
                 id: "excludeTableCellContent",
@@ -201,7 +216,14 @@ export function NoteEditor({
               },
             ],
           },
-          onNodeChange: () => {},
+          onNodeChange: ({ node }) => {
+            // Tag the handle with its target type so CSS can shift listItem
+            // handles left into the paragraph lane (taskItem needs no shift:
+            // taskList has padding-left 0 and is already aligned).
+            const el = dragHandleElRef.current;
+            if (!el) return;
+            el.dataset.target = node ? node.type.name : "";
+          },
         }),
         Placeholder.configure({
           placeholder: ({ editor, pos }) =>
@@ -237,6 +259,7 @@ export function NoteEditor({
           return false;
         },
         handlePaste: (_view, event) => {
+          // 1) Image file paste — keep existing behavior (single file at current pos)
           const items = Array.from(event.clipboardData?.items ?? []);
           const files = items
             .filter(
@@ -244,52 +267,86 @@ export function NoteEditor({
             )
             .map((item) => item.getAsFile())
             .filter((file): file is File => file !== null);
-          if (files.length === 0) return false;
-          event.preventDefault();
-          const file = files[0];
-          const insertPos = _view.state.selection.from;
-          const insertPlaceholder = () => {
-            // Text-only offline v1: keep an editable text marker so no
-            // content is lost; user can re-add the image when online.
-            editorRef.current
-              ?.chain()
-              .focus()
-              .insertContentAt(insertPos, {
-                type: "paragraph",
-                content: [
-                  {
-                    type: "text",
-                    text: `📷 ${file.name} (image pending upload — reconnect to add)`,
-                  },
-                ],
-              })
-              .run();
-          };
-          if (typeof navigator !== "undefined" && !navigator.onLine) {
-            insertPlaceholder();
-            return true;
-          }
-          void uploadResourceFile(file, userIdRef.current)
-            .then((url) => {
+          if (files.length > 0) {
+            event.preventDefault();
+            const file = files[0];
+            const insertPos = _view.state.selection.from;
+            const insertPlaceholder = () => {
               editorRef.current
                 ?.chain()
                 .focus()
                 .insertContentAt(insertPos, {
-                  type: "resource",
-                  attrs: {
-                    src: url,
-                    name: file.name,
-                    type: file.type || "application/octet-stream",
-                    size: file.size,
-                  },
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: `📷 ${file.name} (image pending upload — reconnect to add)`,
+                    },
+                  ],
                 })
                 .run();
-            })
-            .catch((e) => {
-              console.error("[paste] upload failed", e);
+            };
+            if (typeof navigator !== "undefined" && !navigator.onLine) {
               insertPlaceholder();
-            });
-          return true;
+              return true;
+            }
+            void uploadResourceFile(file, userIdRef.current)
+              .then((url) => {
+                editorRef.current
+                  ?.chain()
+                  .focus()
+                  .insertContentAt(insertPos, {
+                    type: "resource",
+                    attrs: {
+                      src: url,
+                      name: file.name,
+                      type: file.type || "application/octet-stream",
+                      size: file.size,
+                    },
+                  })
+                  .run();
+              })
+              .catch((e) => {
+                console.error("[paste] upload failed", e);
+                insertPlaceholder();
+              });
+            return true;
+          }
+
+          // 2) Markdown plain-text paste -> render as blocks (no duplication)
+          try {
+            const html = event.clipboardData?.getData("text/html") ?? "";
+            const text = event.clipboardData?.getData("text/plain") ?? "";
+            if (!text || !text.trim()) return false;
+
+            // If clipboard provides rich HTML with real block tags, let ProseMirror handle it
+            // (e.g. copy from Notion/web retains <h1><ul>). Only intercept text/plain markdown.
+            if (html && /<(h[1-3]|ul|ol|blockquote|pre|li|table)[\s>]/i.test(html)) {
+              return false;
+            }
+
+            if (!looksLikeMarkdown(text)) return false;
+
+            const nodes = markdownToTiptapNodes(text);
+            if (!nodes.length) return false;
+
+            event.preventDefault();
+            // Use deleteSelection to replace any selected range, single insert — prevents duplication
+            // (must return true to suppress default paste which would insert raw "# ..." paragraphs)
+            const ok = editorRef.current?.chain().focus().deleteSelection().insertContent(nodes).run();
+            // Fallback to view insertion if chain failed (e.g. editor not ready)
+            if (!ok && editorRef.current) {
+              try {
+                const { from, to } = _view.state.selection;
+                const tr = _view.state.tr.delete(from, to);
+                _view.dispatch(tr);
+                editorRef.current.chain().focus().insertContent(nodes).run();
+              } catch {}
+            }
+            return true;
+          } catch {
+            return false;
+          }
         },
       },
       onCreate: ({ editor: created }) => {
@@ -611,8 +668,8 @@ export function NoteEditor({
             autoCapitalize="off"
             autoCorrect="off"
             spellCheck={false}
-            placeholder="Add tag…"
-            aria-label="Add tag"
+            placeholder={tag ? "Replace tag…" : "Add tag…"}
+            aria-label={tag ? "Replace tag" : "Add tag"}
             className="h-6 w-28 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
         </div>
