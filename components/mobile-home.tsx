@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PlusIcon, FileTextIcon, LayoutGridIcon, ListIcon } from "lucide-react";
+import { PlusIcon, FileTextIcon, LayoutGridIcon, ListIcon, CircleHelpIcon } from "lucide-react";
 import {
   EMPTY_NOTES,
   getAllNotesSnapshot,
@@ -18,6 +18,7 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import ProfileAvatar from "@/components/profile-avatar";
 import { useI18n } from "@/lib/i18n/provider";
 import { useResolvedUserId } from "@/lib/use-resolved-user-id";
+import { DOCS } from "@/lib/docs";
 
 export function MobileHome({
   userId: userIdProp,
@@ -80,19 +81,28 @@ export function MobileHome({
         <div className="flex items-center gap-2">
           <span className="text-[1.75rem] font-bold tracking-tight leading-none">Bloc</span>
         </div>
-        <Link
-          href="/app/profile"
-          aria-label="Profile"
-          className="shrink-0 rounded-full ring-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Avatar className="size-8 rounded-full border">
-            <AvatarImage
-              src={user?.avatar ?? undefined}
-              alt={user?.name ?? "Profile"}
-            />
-            <ProfileAvatar name={user?.name ?? "User"} size={32} />
-          </Avatar>
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link
+            href="/app/help"
+            aria-label={t("help.menuLabel")}
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <CircleHelpIcon className="size-5" />
+          </Link>
+          <Link
+            href="/app/profile"
+            aria-label="Profile"
+            className="shrink-0 rounded-full ring-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Avatar className="size-8 rounded-full border">
+              <AvatarImage
+                src={user?.avatar ?? undefined}
+                alt={user?.name ?? "Profile"}
+              />
+              <ProfileAvatar name={user?.name ?? "User"} size={32} />
+            </Avatar>
+          </Link>
+        </div>
       </div>
 
       {/* View toggle — grid / list */}
@@ -124,7 +134,7 @@ export function MobileHome({
       </div>
 
       {/* Recent section */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3" data-tour="recent">
         <h2 className="text-sm font-semibold">{t("home.recent")}</h2>
         {recent.length > 0 ? (
           <div className={view === "grid" ? "grid grid-cols-2 gap-3" : "flex flex-col gap-2"}>
@@ -171,10 +181,19 @@ export function MobileHome({
               size="sm"
               className="mt-4"
               onClick={handleCreateNote}
+              data-tour="create-note"
             >
               <PlusIcon className="size-3.5" />
               {t("home.newNote")}
             </Button>
+            <a
+              href={DOCS.quickstart}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-xs font-medium text-primary hover:underline"
+            >
+              {t("help.docs")} →
+            </a>
           </div>
         )}
       </section>

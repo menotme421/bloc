@@ -15,6 +15,8 @@
     "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.1",
+    "@floating-ui/dom": "^1.6.13",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.110.9",
     "@tiptap/extension-code-block-lowlight": "^3.29.1",
@@ -30,12 +32,12 @@
     "@tiptap/pm": "^3.29.1",
     "@tiptap/react": "^3.29.1",
     "@tiptap/starter-kit": "^3.29.1",
-    "@floating-ui/dom": "^1.6.13",
     "boring-avatars": "^2.0.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "cn": "^0.2.6",
+    "driver.js": "^1.8.0",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.27.0",
     "next": "16.2.12",

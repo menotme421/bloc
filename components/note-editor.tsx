@@ -95,6 +95,11 @@ import { SlashMenu, type SlashMenuController } from "@/components/slash-menu";
 import { TableUI } from "@/components/table-ui";
 import { BubbleMenu } from "@/components/bubble-menu";
 import { Resource } from "@/components/resource-node";
+import { ExcalidrawBlock } from "@/components/excalidraw-node";
+import {
+  ExcalidrawBoardHost,
+  useExcalidrawBoard,
+} from "@/components/excalidraw-board";
 import { TagChip } from "@/components/tag-chip";
 import { uploadResourceFile } from "@/lib/resource-upload";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -142,6 +147,8 @@ export function NoteEditor({
   const dragHandleElRef = React.useRef<HTMLElement | null>(null);
 
   const isMobile = useIsMobile();
+  const board = useExcalidrawBoard();
+  const boardOpen = board !== null;
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [slashRange, setSlashRange] = React.useState<{ from: number; to: number } | null>(null);
   const handleOpenPicker = React.useCallback((from: number, to: number) => {
@@ -183,6 +190,7 @@ export function NoteEditor({
         ColoredTableCell,
         ColoredTableHeader,
         Resource.configure({ userId }),
+        ExcalidrawBlock,
         DragHandle.configure({
           computePositionConfig: {
             placement: "left-start",
@@ -618,11 +626,24 @@ export function NoteEditor({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-10 sm:px-6">
-      <div className="flex flex-col gap-5">
+    <div
+      className={
+        boardOpen
+          ? "flex w-full max-w-none flex-1 flex-col"
+          : "mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-10 sm:px-6"
+      }
+    >
+      {/* Board takeover owns the whole note screen below the app top bar
+          (which already shows the note title + sync status). Nothing else
+          shares the screen so the canvas gets maximum space. */}
+      {boardOpen ? (
+        <ExcalidrawBoardHost noteTitle={title} />
+      ) : null}
+      <div className={boardOpen ? "hidden" : "flex flex-col gap-5"}>
         <input
           ref={titleRef}
           value={title}
+          data-tour="note-title"
           onChange={(e) => handleTitleChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown" || e.key === "Enter") {
@@ -636,7 +657,7 @@ export function NoteEditor({
           placeholder="Untitled"
           className="w-full bg-transparent text-3xl font-bold tracking-tight text-foreground outline-none placeholder:text-muted-foreground sm:text-4xl"
         />
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" data-tour="note-tag">
           {tag && (
             <TagChip
               tag={tag}
@@ -673,7 +694,14 @@ export function NoteEditor({
             className="h-6 w-28 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
         </div>
-        <div ref={contentRef} className="relative">
+        {/* The editor stays mounted while the board is open (hidden, NOT
+            unmounted): unmounting EditorContent destroys all TipTap NodeViews,
+            which would silently break saving the board back into its block. */}
+        <div
+          ref={contentRef}
+          data-tour="slash-blocks"
+          className={boardOpen ? "hidden" : "relative"}
+        >
           {/* Desktop slash menu — untouched, never mounted on mobile */}
           {!isMobile && <SlashMenu editor={editor} controllerRef={slashControllerRef} />}
           {!isMobile && <BubbleMenu editor={editor} userId={userId} />}
@@ -687,8 +715,8 @@ export function NoteEditor({
           <BlockActionMenu editor={editor} isMobile={isMobile} contentRef={contentRef} />
         </div>
       </div>
-      {/* Mobile-only 3-part system — no leak to desktop */}
-      {isMobile && (
+      {/* Mobile-only 3-part system — no leak to desktop, hidden while board open */}
+      {isMobile && !boardOpen && (
         <>
           <MiniToolbar editor={editor} isMobile={isMobile} onAddBlock={handleToolbarAddBlock} userId={userId} />
           <BlockPickerSheet

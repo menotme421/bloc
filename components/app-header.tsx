@@ -36,6 +36,7 @@ import {
 import { useResolvedUserId } from "@/lib/use-resolved-user-id"
 import { syncPending } from "@/lib/note-sync"
 import { NoteHistory } from "@/components/note-history"
+import { HelpMenu } from "@/components/help-menu"
 
 export function AppHeader({ userId: userIdProp }: { userId: string }) {
   const pathname = usePathname()
@@ -55,6 +56,7 @@ export function AppHeader({ userId: userIdProp }: { userId: string }) {
     if (pathname === "/app/notes") return t("header.notes")
     if (pathname === "/app/settings") return t("header.settings")
     if (pathname === "/app/profile") return t("header.settings")
+    if (pathname === "/app/help") return t("help.helpCenter")
     if (pathname.startsWith("/app/notes/")) return t("header.untitled")
     return t("header.bloc")
   }
@@ -116,7 +118,7 @@ export function AppHeader({ userId: userIdProp }: { userId: string }) {
         </Breadcrumb>
       </div>
       {isNotePage && (
-        <div className="flex items-center gap-2 px-3">
+        <div className="flex items-center gap-2 px-3" data-tour="sync-status">
           {syncStatus === "saving" && (
             <Badge variant="outline" className="gap-1.5 text-warning">
               <span className="size-1.5 animate-pulse rounded-full bg-current" />
@@ -155,6 +157,7 @@ export function AppHeader({ userId: userIdProp }: { userId: string }) {
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Note actions"
+                data-tour="history"
               >
                 <EllipsisIcon className="size-4" />
                 <span className="sr-only">Note actions</span>
@@ -177,6 +180,12 @@ export function AppHeader({ userId: userIdProp }: { userId: string }) {
               onOpenChange={setHistoryOpen}
             />
           ) : null}
+          <HelpMenu userId={userId} />
+        </div>
+      )}
+      {!isNotePage && (
+        <div className="flex items-center gap-2 px-3">
+          <HelpMenu userId={userId} />
         </div>
       )}
     </header>

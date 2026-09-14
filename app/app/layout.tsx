@@ -6,6 +6,7 @@ import { SyncOnMount } from "@/components/sync-on-mount";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { AuthTracker } from "@/components/auth-tracker";
+import { TourProvider } from "@/components/tour-provider";
 
 export default async function AppLayout({
   children,
@@ -30,6 +31,7 @@ export default async function AppLayout({
         recentNotes={recentNotes}
       />
       <SyncOnMount userId={userId} />
+      <TourProvider userId={userId} />
       <SidebarInset>
         <AppHeader userId={userId} />
         <main className="flex flex-1 flex-col gap-4 p-4 pt-0 pb-28 md:pb-4">{children}</main>

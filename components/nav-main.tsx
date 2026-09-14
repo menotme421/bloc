@@ -15,6 +15,7 @@ export function NavMain({
     icon: React.ReactNode
     isActive?: boolean
     onSelect?: () => void
+    tourId?: string
   }[]
 }) {
   return (
@@ -27,17 +28,18 @@ export function NavMain({
                 type="button"
                 onClick={item.onSelect}
                 className="font-normal"
+                data-tour={item.tourId}
               >
                 {item.icon}
                 <span>{item.title}</span>
               </button>
             ) : item.url ? (
-              <a href={item.url}>
+              <a href={item.url} data-tour={item.tourId}>
                 {item.icon}
                 <span>{item.title}</span>
               </a>
             ) : (
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2" data-tour={item.tourId}>
                 {item.icon}
                 <span>{item.title}</span>
               </span>

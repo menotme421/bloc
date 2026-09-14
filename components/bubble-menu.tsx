@@ -413,6 +413,8 @@ export function BubbleMenu({
       // the open menu and swallow the click (no console log, menu just closes).
       if (openPanel) return;
       if (editor.state.selection.empty) return;
+      const sel = editor.state.selection;
+      if ("node" in sel && sel.node) return;
       if (hiddenRef.current) return;
       if (!menuEl || menuEl.isConnected) return;
       setBubbleGen((g) => g + 1);
@@ -426,6 +428,9 @@ export function BubbleMenu({
       if (openPanel) return true;
       const { selection } = e.state;
       if (selection.empty) return false;
+      // Node selections (drawing boards, images/files, dividers, …) carry
+      // no inline text — the text-formatting bubble is meaningless there.
+      if ("node" in selection && selection.node) return false;
       if (e.isActive("codeBlock")) return false;
       return true;
     },

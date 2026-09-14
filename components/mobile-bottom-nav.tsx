@@ -51,6 +51,7 @@ export function MobileBottomNav({ userId: userIdProp }: { userId: string }) {
             href="/app/search"
             replace
             aria-label={t("nav.search")}
+            data-tour="search"
             className={cn(
               "inline-flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-full px-2 py-3 text-xs font-medium whitespace-nowrap overflow-hidden transition-colors",
               isSearch
@@ -67,6 +68,7 @@ export function MobileBottomNav({ userId: userIdProp }: { userId: string }) {
         <button
           type="button"
           aria-label={t("nav.newNote")}
+          data-tour="create-note"
           onClick={handleCreateNote}
           className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition active:scale-95"
         >

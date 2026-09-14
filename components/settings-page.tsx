@@ -3,10 +3,12 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { useTheme } from "@/components/theme-provider";
-import { Loader2, Monitor, Moon, Sun, Trash2, TriangleAlert, GlobeIcon, ChevronDownIcon, CheckIcon, LogOut } from "lucide-react";
+import { Loader2, Monitor, Moon, Sun, Trash2, TriangleAlert, GlobeIcon, ChevronDownIcon, CheckIcon, LogOut, PlayIcon, RouteIcon, BookOpenIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/provider";
+import { useTour } from "@/hooks/use-tour";
+import { DOCS } from "@/lib/docs";
 import {
   updateDisplayName,
   deleteAccount,
@@ -120,7 +122,7 @@ function AppearanceCard() {
     system: t("settings.appearance.system"),
   };
   return (
-    <Card>
+    <Card data-tour="settings">
       <CardHeader>
         <CardTitle>{t("settings.appearance.title")}</CardTitle>
         <CardDescription>{t("settings.appearance.desc")}</CardDescription>
@@ -313,12 +315,47 @@ function DangerCard({ email }: { email: string }) {
   );
 }
 
+function HelpCard({ userId }: { userId: string }) {
+  const { t } = useI18n();
+  const { startQuickstart, startFullTour } = useTour(userId);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("help.toursTitle")}</CardTitle>
+        <CardDescription>{t("help.toursDesc")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <Button type="button" onClick={() => void startQuickstart()}>
+          <PlayIcon className="size-4" />
+          {t("tour.quickstart")}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void startFullTour()}
+        >
+          <RouteIcon className="size-4" />
+          {t("tour.fullTour")}
+        </Button>
+        <Button type="button" variant="outline" asChild>
+          <a href={DOCS.home} target="_blank" rel="noopener noreferrer">
+            <BookOpenIcon className="size-4" />
+            {t("help.docs")}
+          </a>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SettingsPage({
   name,
   email,
+  userId = "",
 }: {
   name: string;
   email: string;
+  userId?: string;
 }) {
   const { t } = useI18n();
   return (
@@ -327,6 +364,7 @@ export function SettingsPage({
       <ProfileCard name={name} email={email} />
       <AppearanceCard />
       <LanguageCard />
+      <HelpCard userId={userId} />
       <SignOutCard />
       <DangerCard email={email} />
     </div>

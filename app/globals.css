@@ -1176,4 +1176,525 @@
   .resource-remove-btn:hover {
     color: var(--destructive);
   }
+
+  /* ── Excalidraw node (inline preview + in-note board takeover) ──── */
+  .note-content > .excalidraw-node:hover {
+    background-color: transparent;
+  }
+
+  .excalidraw-node {
+    margin: 0 0 0.75rem;
+  }
+
+  .excalidraw-node p {
+    margin: 0;
+  }
+
+  .excalidraw-card {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--card);
+    overflow: hidden;
+  }
+
+  .excalidraw-card-selected {
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+
+  /* Ring for the card whose board is currently open in the note. */
+  .excalidraw-card-board-open {
+    border-style: dashed;
+    border-color: var(--primary);
+  }
+
+  /* Card header strip — flush with the card top, top corners rounded to
+     match the block outline, divider below. Hidden until the pointer is
+     over the block, the block is selected, or focus moves inside
+     (keyboard / touch tap-to-select). Absolutely positioned so showing it
+     never shifts layout. */
+  .excalidraw-card-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.375rem 0.375rem 0.375rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    background-color: color-mix(in srgb, var(--popover) 92%, transparent);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    translate: 0 -4px;
+    pointer-events: none;
+    transition:
+      opacity 150ms ease,
+      translate 150ms ease;
+  }
+
+  .excalidraw-card:hover .excalidraw-card-header,
+  .excalidraw-card:focus-within .excalidraw-card-header,
+  .excalidraw-card-selected .excalidraw-card-header {
+    opacity: 1;
+    translate: 0 0;
+    pointer-events: auto;
+  }
+
+  .excalidraw-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  /* Brand glyph — the Drawing pen icon inherits the block title color,
+     tinted primary in both the preview strip and the board header. */
+  .excalidraw-card-title svg {
+    color: var(--primary);
+  }
+
+  .excalidraw-card-count {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  .excalidraw-card-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .excalidraw-expand-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    background-color: transparent;
+    cursor: pointer;
+    transition:
+      color 150ms ease,
+      background-color 150ms ease;
+  }
+
+  .excalidraw-expand-btn:hover {
+    color: var(--foreground);
+    background-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+  }
+
+  /* Branded entry point — the Open button carries a primary-soft tint so
+     the drawing block's edit action reads as part of the app brand.
+     Destructive (remove) keeps its red treatment, set below. */
+  .excalidraw-expand-btn.excalidraw-open-btn {
+    color: var(--primary);
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+
+  .excalidraw-expand-btn.excalidraw-open-btn:hover {
+    color: var(--primary);
+    background-color: color-mix(in srgb, var(--primary) 17%, transparent);
+  }
+
+  .excalidraw-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--muted-foreground);
+    background-color: transparent;
+    cursor: pointer;
+    transition:
+      color 150ms ease,
+      background-color 150ms ease;
+  }
+
+  .excalidraw-remove-btn:hover {
+    color: var(--destructive);
+    background-color: color-mix(in srgb, var(--destructive) 10%, transparent);
+  }
+
+  /* Full-bleed preview: fills the card width (was a centered 400px
+     square that left dead gutters). Fixed height owns the sizing that
+     Excalidraw requires. */
+  .excalidraw-preview {
+    position: relative;
+    width: 100%;
+    height: 360px;
+    background-color: var(--background);
+    cursor: pointer;
+  }
+
+  .excalidraw-preview .excalidraw {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Read-only preview: hide ALL Excalidraw chrome so the block stays a
+     clean drawing preview. Editing happens in the board, which keeps its
+     full chrome. Covers both UI trees Excalidraw renders: the desktop
+     .layer-ui__wrapper (top toolbar + bottom footer/menu/zoom) AND the
+     separate mobile tree (.App-bottom-bar / .App-toolbar-container) it
+     renders instead on touch devices. (Coupled to @excalidraw/excalidraw's
+     internal classes — re-check after upgrades.)
+     NOTE: !important is required — this rule lives in @layer utilities
+     (Tailwind v4) while Excalidraw's CSS is unlayered, and unlayered
+     styles beat layered ones without it. */
+  .excalidraw-preview .excalidraw .layer-ui__wrapper,
+  .excalidraw-preview .excalidraw .layer-ui__wrapper__footer,
+  .excalidraw-preview .excalidraw .App-menu_bottom,
+  .excalidraw-preview .excalidraw .App-bottom-bar,
+  .excalidraw-preview .excalidraw .App-toolbar-container,
+  .excalidraw-preview .excalidraw .App-mobile-menu,
+  .excalidraw-preview .excalidraw .mobile-misc-tools-container {
+    display: none !important;
+  }
+
+  .excalidraw-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+  }
+
+  .excalidraw-empty-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    background-color: color-mix(in srgb, var(--foreground) 2%, transparent);
+    cursor: pointer;
+    transition:
+      color 150ms ease,
+      background-color 150ms ease;
+  }
+
+  .excalidraw-empty-overlay:hover {
+    color: var(--foreground);
+    background-color: color-mix(in srgb, var(--primary) 6%, transparent);
+  }
+
+  /* Board brand mapping — re-skin Excalidraw's editor UI (toolbar active
+     states, selection, focus rings, islands) to the Bloc brand by
+     redefining its theme variables from our tokens. Scoped to the board
+     body so the read-only preview (chrome hidden above) and any other
+     Excalidraw mount stay untouched. Verified against
+     @excalidraw/excalidraw 0.18.1 defaults:
+       light primary #6965db → var(--primary), dark #a8a5ff → dark token.
+     Neutral vars reference Bloc tokens directly, so they follow light/dark
+     automatically; the primary ramp is derived per mode below because
+     Excalidraw's dark ramp runs lighter, not darker.
+     Specificity note: these declarations MUST carry !important — they live
+     in @layer utilities (Tailwind v4) while Excalidraw's stylesheet is
+     unlayered, and unlayered normal declarations beat layered ones at ANY
+     specificity. (Same reason as the preview hide rule above.) */
+  .excalidraw-board-body .excalidraw {
+    --color-primary: var(--primary) !important;
+    --color-primary-darker: color-mix(
+      in oklch,
+      var(--primary),
+      black 12%
+    ) !important;
+    --color-primary-darkest: color-mix(
+      in oklch,
+      var(--primary),
+      black 24%
+    ) !important;
+    --color-primary-hover: color-mix(
+      in oklch,
+      var(--primary),
+      black 8%
+    ) !important;
+    --color-brand-hover: color-mix(
+      in oklch,
+      var(--primary),
+      black 8%
+    ) !important;
+    --color-brand-active: color-mix(
+      in oklch,
+      var(--primary),
+      black 24%
+    ) !important;
+    --color-primary-light: color-mix(
+      in oklch,
+      var(--primary),
+      white 84%
+    ) !important;
+    --color-primary-light-darker: color-mix(
+      in oklch,
+      var(--primary),
+      white 74%
+    ) !important;
+    --color-selection: var(--primary) !important;
+    --island-bg-color: var(--popover) !important;
+    --popup-bg-color: var(--popover) !important;
+    --sidebar-bg-color: var(--card) !important;
+    --button-hover-bg: var(--muted) !important;
+    --default-border-color: var(--border) !important;
+    --text-primary-color: var(--foreground) !important;
+    --icon-fill-color: var(--foreground) !important;
+    --color-on-surface: var(--foreground) !important;
+    --color-surface-high: var(--muted) !important;
+    --color-surface-low: var(--card) !important;
+    --color-surface-lowest: var(--card) !important;
+  }
+
+  .dark .excalidraw-board-body .excalidraw.theme--dark {
+    --color-primary: var(--primary) !important;
+    --color-primary-darker: color-mix(
+      in oklch,
+      var(--primary),
+      white 14%
+    ) !important;
+    --color-primary-darkest: color-mix(
+      in oklch,
+      var(--primary),
+      white 24%
+    ) !important;
+    --color-primary-hover: color-mix(
+      in oklch,
+      var(--primary),
+      white 10%
+    ) !important;
+    --color-brand-hover: color-mix(
+      in oklch,
+      var(--primary),
+      white 10%
+    ) !important;
+    --color-brand-active: color-mix(
+      in oklch,
+      var(--primary),
+      white 22%
+    ) !important;
+    --color-primary-light: color-mix(
+      in oklch,
+      var(--primary),
+      black 55%
+    ) !important;
+    --color-primary-light-darker: color-mix(
+      in oklch,
+      var(--primary),
+      black 65%
+    ) !important;
+    --color-selection: var(--primary) !important;
+  }
+
+  /* In-note board takeover: the board owns the whole note screen below the
+     app top bar (which already shows the note title + sync status), so the
+     canvas gets maximum space. min-height drives the sizing — the note
+     column is content-sized, so flex alone would collapse — and must cover
+     viewport height minus top bar (h-14) and the main bottom padding.
+     Excalidraw needs that definite height to measure a non-zero canvas. */
+  .excalidraw-board {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    min-height: 70vh;
+    min-height: calc(100dvh - 3.5rem - 1rem);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background-color: var(--card);
+    animation: excalidraw-board-in 180ms ease;
+  }
+
+  @keyframes excalidraw-board-in {
+    from {
+      opacity: 0;
+      translate: 0 8px;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  .excalidraw-board-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--card);
+  }
+
+  .excalidraw-board-back {
+    min-width: 0;
+    max-width: 12rem;
+  }
+
+  .excalidraw-board-back-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+  }
+
+  .excalidraw-board .excalidraw-card-title {
+    min-width: 0;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .excalidraw-board-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.875rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary-foreground);
+    background-color: var(--primary);
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      opacity 150ms ease;
+  }
+
+  .excalidraw-board-done:hover {
+    background-color: color-mix(in srgb, var(--primary) 88%, transparent);
+  }
+
+  .excalidraw-board-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background-color: var(--background);
+  }
+
+  .excalidraw-board-body .excalidraw {
+    width: 100%;
+    height: 100%;
+  }
+
+  @media (max-width: 767px) {
+    .excalidraw-preview {
+      height: 300px;
+    }
+
+    .excalidraw-board {
+      /* Mobile main reserves pb-28 for the bottom nav. */
+      min-height: calc(100dvh - 3.5rem - 7rem);
+    }
+
+    .excalidraw-board-back {
+      max-width: 8rem;
+    }
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   6. GUIDED TOUR (driver.js)
+   Popovers inherit the Bloc design system in both themes.
+   driver.js renders its overlay/popover at z-index 10000+,
+   above app chrome (nav z-40, menus/dialogs z-50).
+   ───────────────────────────────────────────────────────────── */
+.driver-popover {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  font-family: var(--font-sans);
+  max-width: min(22rem, calc(100vw - 2rem));
+}
+
+.driver-popover-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--popover-foreground);
+}
+
+.driver-popover-description {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.driver-popover-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.driver-popover-footer button {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  padding: 0.375rem 0.75rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.driver-popover-footer button.driver-popover-next-btn {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.driver-popover-footer button.driver-popover-next-btn:hover {
+  filter: brightness(0.94);
+}
+
+.driver-popover-footer button.driver-popover-prev-btn,
+.driver-popover-footer button.driver-popover-close-btn {
+  background-color: transparent;
+  color: var(--muted-foreground);
+  border-color: var(--border);
+}
+
+.driver-popover-footer button.driver-popover-prev-btn:hover,
+.driver-popover-footer button.driver-popover-close-btn:hover {
+  color: var(--foreground);
+  background-color: var(--muted);
+}
+
+.driver-popover-progress-text {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.driver-popover-arrow {
+  border-color: var(--popover);
+}
+
+.driver-tour-docs-link {
+  margin-right: auto;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.driver-tour-docs-link:hover {
+  text-decoration: underline;
 }

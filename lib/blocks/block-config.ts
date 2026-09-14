@@ -15,6 +15,7 @@ import {
   Code2Icon,
   TableIcon,
   InfoIcon,
+  PenToolIcon,
 } from "lucide-react";
 
 function deleteSlashRange(editor: Editor, from?: number, to?: number): void {
@@ -44,6 +45,7 @@ export type BlockType =
   | "orderedList"
   | "taskList"
   | "resources"
+  | "excalidraw"
   | "horizontalRule"
   | "codeBlock"
   | "table"
@@ -179,6 +181,18 @@ export const BLOCK_DEFS: BlockDef[] = [
     },
   },
   {
+    id: "excalidraw",
+    label: "Drawing",
+    sublabel: "Excalidraw canvas",
+    category: "Media",
+    icon: PenToolIcon,
+    aliases: ["drawing", "excalidraw", "canvas", "sketch", "whiteboard", "draw"],
+    insert: (editor, from, to) => {
+      deleteSlashRange(editor, from, to);
+      editor.chain().focus().insertContent({ type: "excalidraw" }).run();
+    },
+  },
+  {
     id: "horizontalRule",
     label: "Divider",
     sublabel: "Horizontal rule",
@@ -234,6 +248,8 @@ export const BLOCK_DEFS: BlockDef[] = [
 ];
 
 // Follow-up suggestions: heading -> [bullet, h2, paragraph] etc.
+// Note: excalidraw intentionally excluded from TURN_INTO_MAP (atom node
+// can't be converted losslessly); move/duplicate/delete still work.
 export const FOLLOW_UP_MAP: Record<BlockType, BlockType[]> = {
   paragraph: ["h1", "bulletList", "taskList", "blockquote"],
   h1: ["h2", "bulletList", "paragraph"],
@@ -243,7 +259,8 @@ export const FOLLOW_UP_MAP: Record<BlockType, BlockType[]> = {
   bulletList: ["bulletList", "taskList", "paragraph"],
   orderedList: ["orderedList", "taskList", "paragraph"],
   taskList: ["taskList", "bulletList", "paragraph"],
-  resources: ["paragraph", "horizontalRule", "blockquote"],
+  resources: ["paragraph", "excalidraw", "horizontalRule", "blockquote"],
+  excalidraw: ["paragraph", "horizontalRule", "blockquote"],
   horizontalRule: ["paragraph", "h1", "bulletList"],
   codeBlock: ["paragraph", "blockquote"],
   table: ["paragraph", "bulletList"],

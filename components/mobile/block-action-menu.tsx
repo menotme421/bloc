@@ -95,6 +95,7 @@ function getBlockType(node: { type: { name: string } }): BlockType | null {
   if (name === "codeBlock") return "codeBlock";
   if (name === "horizontalRule") return "horizontalRule";
   if (name === "resource") return "resources";
+  if (name === "excalidraw") return "resources";
   if (name === "table") return "table";
   return null;
 }
@@ -227,7 +228,7 @@ export function BlockActionMenu({ editor, isMobile, contentRef }: Props) {
     // find DOM element for highlight - walk up to nearest block-level element with data
     let dom: HTMLElement | null = target as HTMLElement;
     while (dom && dom !== contentRef.current) {
-      if (dom.matches?.("p, h1, h2, h3, blockquote, ul, ol, li, pre, hr, table, div[data-type='resource']")) {
+      if (dom.matches?.("p, h1, h2, h3, blockquote, ul, ol, li, pre, hr, table, div[data-type='resource'], div[data-resource], div[data-excalidraw]")) {
         break;
       }
       dom = dom.parentElement;

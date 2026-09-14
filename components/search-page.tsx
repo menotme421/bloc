@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { SearchIcon, SlidersHorizontalIcon } from "lucide-react";
+import Link from "next/link";
+import { SearchIcon, SlidersHorizontalIcon, CircleHelpIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { MobileNoteCard } from "@/components/mobile-note-card";
 import { FilterBar } from "@/components/note-filters";
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n/provider";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useResolvedUserId } from "@/lib/use-resolved-user-id";
+import { DOCS } from "@/lib/docs";
 
 export function SearchPage({ userId: userIdProp }: { userId: string }) {
   const { t } = useI18n();
@@ -76,14 +78,21 @@ export function SearchPage({ userId: userIdProp }: { userId: string }) {
   return (
     <div className="flex flex-col gap-4 pb-28">
       {/* Header same as home: branding */}
-      <div className="flex items-center gap-2 pt-2">
+      <div className="flex items-center justify-between pt-2">
         <span className="text-[1.75rem] font-bold tracking-tight leading-none">Bloc</span>
+        <Link
+          href="/app/help"
+          aria-label={t("help.menuLabel")}
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <CircleHelpIcon className="size-5" />
+        </Link>
       </div>
 
       <h1 className="text-xl font-bold tracking-tight">{t("search.title")}</h1>
 
       {/* Search bar + filter toggle */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" data-tour="search">
         <div className="relative flex-1">
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -156,6 +165,14 @@ export function SearchPage({ userId: userIdProp }: { userId: string }) {
           <p className="mt-1 text-xs text-muted-foreground">
             {t("search.searchYourNotesDesc")}
           </p>
+          <a
+            href={DOCS.search}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block text-xs font-medium text-primary hover:underline"
+          >
+            {t("help.docs")} →
+          </a>
         </div>
       ) : filtered.length > 0 ? (
         <>
