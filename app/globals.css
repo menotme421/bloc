@@ -395,6 +395,221 @@
       "Liberation Mono", Menlo, monospace;
   }
 
+  /* ── Code block NodeView (Notion-style header + runner) ─── */
+  .note-content .code-block-wrap {
+    background-color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin: 0 0 0.75rem;
+    overflow: hidden;
+  }
+
+  .note-content .code-block-wrap.code-block-selected {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .note-content .code-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    background-color: color-mix(in srgb, var(--foreground) 4%, transparent);
+    user-select: none;
+  }
+
+  .note-content .code-block-lang {
+    max-width: 11rem;
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 0.125rem 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .note-content .code-block-lang:hover {
+    border-color: var(--border);
+    color: var(--foreground);
+  }
+
+  .note-content .code-block-lang option {
+    color: initial;
+  }
+
+  .note-content .code-block-lang-label {
+    padding: 0.125rem 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+
+  /* shadcn trigger in the inline code header: ghost-like so it blends into
+     the header strip, same dropdown component as the full IDE. */
+  .note-content .code-block-lang-select {
+    flex: none;
+    max-width: 11rem;
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+
+  .note-content .code-block-lang-select:hover {
+    border-color: var(--border);
+    color: var(--foreground);
+  }
+
+  .note-content .code-block-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .note-content .code-block-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    background-color: transparent;
+  }
+
+  .note-content .code-block-btn:hover:not(:disabled) {
+    background-color: var(--accent);
+    color: var(--foreground);
+    border-color: var(--border);
+  }
+
+  .note-content .code-block-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .note-content .code-block-pre {
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    margin: 0;
+  }
+
+  .note-content .code-block-pre > code {
+    display: block;
+    background-color: transparent;
+    padding: 0;
+    white-space: pre;
+  }
+
+  /* NodeViewContent renders a plain div inside <code> — neutralize it so
+     multiline code + hljs spans behave like raw code text. */
+  .note-content .code-block-pre > code > div {
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    white-space: pre;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  .note-content .code-block-output {
+    border-top: 1px solid var(--border);
+    background-color: color-mix(in srgb, var(--background) 60%, transparent);
+  }
+
+  .note-content .code-block-output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    user-select: none;
+  }
+
+  .note-content .code-block-output-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+
+  .note-content .code-block-output-meta {
+    font-weight: 400;
+    opacity: 0.8;
+  }
+
+  .note-content .code-block-output-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .note-content .code-block-output-pre {
+    margin: 0;
+    padding: 0.5rem 0.75rem 0.75rem;
+    font-size: 0.8rem;
+    font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas,
+      "Liberation Mono", Menlo, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background-color: transparent;
+    border: none;
+  }
+
+  .note-content .code-block-output-empty {
+    color: var(--muted-foreground);
+  }
+
+  .note-content .code-block-output-pre.is-truncated {
+    max-height: 12rem;
+    overflow: hidden;
+  }
+
+  .note-content .code-block-output-more {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem 0.625rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    user-select: none;
+  }
+
+  .note-content .code-block-output-more-btn {
+    border-color: var(--border);
+  }
+
+  .note-content .code-block-log-error {
+    color: #d4183d;
+  }
+
+  .dark .note-content .code-block-log-error {
+    color: #f0799a;
+  }
+
+  .note-content .code-block-log-warn {
+    color: #d97706;
+  }
+
+  .note-content .code-block-log-result {
+    color: var(--muted-foreground);
+  }
+
   .note-content hr {
     border: none;
     border-top: 1px solid var(--border);
@@ -904,7 +1119,8 @@
     background-color: color-mix(in srgb, var(--foreground) 5%, transparent);
   }
 
-  .note-content > .tableWrapper:hover {
+  .note-content > .tableWrapper:hover,
+  .note-content > .code-block-wrap:hover {
     background-color: transparent;
   }
 
@@ -1601,6 +1817,548 @@
 
     .excalidraw-board-back {
       max-width: 8rem;
+    }
+  }
+
+  /* ── Code IDE takeover: same pattern as the drawing board — owns the whole
+     note screen below the app top bar so long programs get full width.
+     Sidebar stays visible because this renders inside SidebarInset. */
+  .code-ide-board {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    min-height: 70vh;
+    min-height: calc(100dvh - 3.5rem - 1rem);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background-color: var(--card);
+    animation: excalidraw-board-in 180ms ease;
+  }
+
+  .code-ide-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--card);
+    user-select: none;
+  }
+
+  .code-ide-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .code-ide-header-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .code-ide-header-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  /* .code-block-btn styles live under .note-content, but the IDE takeover
+     renders outside it — scope the same look here and force a single row
+     so the Run icon + label never stack vertically. */
+  .code-ide-header .code-block-btn {
+    display: inline-flex;
+    flex-direction: row;
+    flex: none;
+    align-items: center;
+    gap: 0.375rem;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    background-color: transparent;
+    cursor: pointer;
+  }
+
+  .code-ide-header .code-block-btn:hover:not(:disabled) {
+    background-color: var(--accent);
+    color: var(--foreground);
+    border-color: var(--border);
+  }
+
+  .code-ide-header .code-block-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* shadcn trigger in the IDE header: compact, capped width. */
+  .code-ide-header .code-ide-lang {
+    flex: none;
+    max-width: 10rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .code-ide-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    background-color: var(--background);
+  }
+
+  @media (min-width: 1024px) {
+    .code-ide-body {
+      flex-direction: row;
+    }
+  }
+
+  .code-ide-editor {
+    display: flex;
+    flex: 1;
+    min-height: 16rem;
+    min-width: 0;
+    overflow: hidden;
+    background-color: var(--card);
+  }
+
+  @media (min-width: 1024px) {
+    .code-ide-editor {
+      min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+  }
+
+  /* Line-number gutter: same mono metrics as the textarea so rows align.
+     Scroll is mirrored from the textarea (no independent scrolling). */
+  .code-ide-gutter {
+    flex: none;
+    width: 3.25rem;
+    overflow: hidden;
+    padding: 0.75rem 0.5rem 0.75rem 0;
+    text-align: right;
+    font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas,
+      "Liberation Mono", Menlo, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    white-space: pre;
+    color: var(--muted-foreground);
+    opacity: 0.7;
+    user-select: none;
+    background-color: color-mix(in srgb, var(--foreground) 3%, transparent);
+    border-right: 1px solid var(--border);
+  }
+
+  .code-ide-area {
+    flex: 1;
+    min-width: 0;
+    padding: 0.75rem 1rem;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas,
+      "Liberation Mono", Menlo, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    white-space: pre;
+    color: var(--foreground);
+    background-color: transparent;
+    caret-color: var(--primary);
+  }
+
+  .code-ide-area::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .code-ide-output {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    min-height: 10rem;
+    max-height: 40%;
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+    background-color: color-mix(in srgb, var(--background) 60%, transparent);
+  }
+
+  @media (min-width: 1024px) {
+    .code-ide-output {
+      flex-basis: 22rem;
+      max-height: none;
+      border-top: none;
+    }
+  }
+
+  .code-ide-output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+  }
+
+  /* ── Panel tabs (Console / Input) ─────────────────────────── */
+  .code-ide-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .code-ide-tab {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .code-ide-tab:hover {
+    color: var(--foreground);
+    background-color: var(--accent);
+  }
+
+  .code-ide-tab[aria-selected="true"] {
+    color: var(--foreground);
+    background-color: color-mix(in srgb, var(--foreground) 7%, transparent);
+  }
+
+  .code-ide-tab-dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: var(--primary);
+  }
+
+  .code-ide-panel-title {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+
+  .code-ide-meta {
+    font-weight: 400;
+    opacity: 0.8;
+  }
+
+  /* ── Panel actions: status pill + icon buttons ────────────── */
+  .code-ide-output-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+
+  .code-ide-pill {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .code-ide-pill-dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: currentColor;
+  }
+
+  .code-ide-pill-ok {
+    color: #15803d;
+    background-color: color-mix(in srgb, #16a34a 12%, transparent);
+  }
+
+  .dark .code-ide-pill-ok {
+    color: #4ade80;
+  }
+
+  .code-ide-pill-error {
+    color: #d4183d;
+    background-color: color-mix(in srgb, #d4183d 10%, transparent);
+  }
+
+  .dark .code-ide-pill-error {
+    color: #f0799a;
+  }
+
+  .code-ide-pill-running {
+    color: var(--muted-foreground);
+    background-color: color-mix(in srgb, var(--foreground) 7%, transparent);
+  }
+
+  .code-ide-icon-btn {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--muted-foreground);
+    background-color: transparent;
+    cursor: pointer;
+  }
+
+  .code-ide-icon-btn:hover {
+    background-color: var(--accent);
+    color: var(--foreground);
+    border-color: var(--border);
+  }
+
+  /* ── Console: scroll container + scoped pre/log styles ──────
+     (These classes are styled under .note-content only; the IDE
+     takeover renders outside it, so scope them here too.) */
+  .code-ide-console {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .code-ide-output .code-block-output-pre {
+    margin: 0;
+    padding: 0.5rem 0.75rem 0.75rem;
+    font-size: 0.8rem;
+    font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas,
+      "Liberation Mono", Menlo, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background-color: transparent;
+    border: none;
+  }
+
+  .code-ide-output .code-block-output-empty {
+    color: var(--muted-foreground);
+  }
+
+  .code-ide-output .code-block-log-error {
+    color: #d4183d;
+  }
+
+  .dark .code-ide-output .code-block-log-error {
+    color: #f0799a;
+  }
+
+  .code-ide-output .code-block-log-warn {
+    color: #d97706;
+  }
+
+  .code-ide-output .code-block-log-result {
+    color: var(--muted-foreground);
+  }
+
+  /* ── Console empty state ──────────────────────────────────── */
+  .code-ide-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    min-height: 8rem;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--muted-foreground);
+  }
+
+  .code-ide-empty p {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  .code-ide-empty .code-ide-empty-hint {
+    font-size: 0.75rem;
+    font-weight: 400;
+    opacity: 0.85;
+  }
+
+  /* ── Editor status bar ────────────────────────────────────── */
+  .code-ide-editor-col {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  .code-ide-statusbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.3125rem 0.75rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.6875rem;
+    color: var(--muted-foreground);
+    background-color: color-mix(in srgb, var(--foreground) 3%, transparent);
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  .note-content .code-block-wrap.code-block-ide-open {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  /* ── Draggable split between editor and output ──────────────
+     Stacked (column) below lg, side-by-side (row) on desktop. */
+  .code-ide-divider {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 0.625rem;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    cursor: row-resize;
+    touch-action: none;
+    outline: none;
+  }
+
+  .code-ide-divider::after {
+    content: "";
+    display: block;
+    width: 2.5rem;
+    height: 4px;
+    border-radius: 9999px;
+    background-color: var(--border);
+    transition: background-color 150ms ease;
+  }
+
+  .code-ide-divider:hover::after,
+  .code-ide-divider:focus-visible::after,
+  .code-ide-divider[data-dragging="true"]::after {
+    background-color: var(--primary);
+  }
+
+  @media (min-width: 1024px) {
+    .code-ide-divider {
+      width: 0.625rem;
+      height: auto;
+      align-self: stretch;
+      cursor: col-resize;
+    }
+
+    .code-ide-divider::after {
+      width: 4px;
+      height: 2.5rem;
+    }
+  }
+
+  /* While dragging: no text selection anywhere in the IDE. */
+  .code-ide-dragging,
+  .code-ide-dragging * {
+    user-select: none !important;
+  }
+
+  .code-ide-dragging .code-ide-divider::after {
+    background-color: var(--primary);
+  }
+
+  /* Sandboxed HTML/CSS preview frame (opaque origin: no allow-same-origin). */
+  .note-content .code-block-preview-frame {
+    display: block;
+    width: 100%;
+    height: 20rem;
+    border: none;
+    background-color: #ffffff;
+  }
+
+  .code-ide-preview-frame {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    border: none;
+    background-color: #ffffff;
+  }
+
+  /* stdin lives behind the Input tab: fills the panel body. */
+  .code-ide-stdin-tab {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-height: 0;
+    padding: 0.625rem 0.75rem 0.75rem;
+  }
+
+  .code-ide-stdin-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--muted-foreground);
+  }
+
+  .code-ide-stdin-area {
+    width: 100%;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    resize: vertical;
+    font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas,
+      "Liberation Mono", Menlo, monospace;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--foreground);
+    background-color: var(--card);
+  }
+
+  .code-ide-stdin-area:focus {
+    border-color: var(--ring);
+  }
+
+  .code-ide-stdin-area-fill {
+    flex: 1;
+    min-height: 0;
+    resize: none;
+  }
+
+  .code-ide-hint {
+    padding: 0.5rem 0.75rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+
+  .code-ide-hint code {
+    font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas,
+      "Liberation Mono", Menlo, monospace;
+    font-size: 0.75rem;
+  }
+
+  @media (max-width: 767px) {
+    .code-ide-board {
+      min-height: calc(100dvh - 3.5rem - 7rem);
     }
   }
 }

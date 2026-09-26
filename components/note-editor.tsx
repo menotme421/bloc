@@ -12,7 +12,8 @@ import Superscript from "@tiptap/extension-superscript";
 import { TextStyle } from "@tiptap/extension-text-style";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { CustomCodeBlock } from "@/components/code-block-node-view";
+import { lowlight } from "@/lib/code-block-lowlight";
 import DragHandle from "@tiptap/extension-drag-handle";
 import { offset } from "@floating-ui/dom";
 import { TableKit } from "@tiptap/extension-table";
@@ -21,69 +22,6 @@ import {
   ColoredTableHeader,
 } from "@/components/table-cell-color";
 import { Placeholder } from "@tiptap/extensions";
-import { createLowlight } from "lowlight";
-import bash from "highlight.js/lib/languages/bash";
-import c from "highlight.js/lib/languages/c";
-import cpp from "highlight.js/lib/languages/cpp";
-import css from "highlight.js/lib/languages/css";
-import diff from "highlight.js/lib/languages/diff";
-import go from "highlight.js/lib/languages/go";
-import http from "highlight.js/lib/languages/http";
-import ini from "highlight.js/lib/languages/ini";
-import java from "highlight.js/lib/languages/java";
-import javascript from "highlight.js/lib/languages/javascript";
-import json from "highlight.js/lib/languages/json";
-import makefile from "highlight.js/lib/languages/makefile";
-import markdown from "highlight.js/lib/languages/markdown";
-import php from "highlight.js/lib/languages/php";
-import plaintext from "highlight.js/lib/languages/plaintext";
-import python from "highlight.js/lib/languages/python";
-import rust from "highlight.js/lib/languages/rust";
-import shell from "highlight.js/lib/languages/shell";
-import sql from "highlight.js/lib/languages/sql";
-import typescript from "highlight.js/lib/languages/typescript";
-import xml from "highlight.js/lib/languages/xml";
-import yaml from "highlight.js/lib/languages/yaml";
-
-const lowlight = createLowlight();
-const lowlightGrammars: Record<string, typeof javascript> = {
-  js: javascript,
-  jsx: javascript,
-  javascript,
-  ts: typescript,
-  tsx: typescript,
-  typescript,
-  css,
-  html: xml,
-  svg: xml,
-  xml,
-  json,
-  py: python,
-  python,
-  bash,
-  sh: shell,
-  shell,
-  sql,
-  md: markdown,
-  markdown,
-  java,
-  c,
-  cpp,
-  "c++": cpp,
-  go,
-  rs: rust,
-  rust,
-  php,
-  yml: yaml,
-  yaml,
-  diff,
-  ini,
-  http,
-  makefile,
-  text: plaintext,
-  plaintext,
-};
-lowlight.register(lowlightGrammars);
 
 import { Button } from "@/components/ui/button";
 import { addOutboxEntry, getLocalNote, getOutbox, isInOutbox, markNoteOpened, upsertLocalNote } from "@/lib/local-notes";
@@ -100,6 +38,7 @@ import {
   ExcalidrawBoardHost,
   useExcalidrawBoard,
 } from "@/components/excalidraw-board";
+import { CodeIdeHost, useCodeIDE } from "@/components/code-ide-board";
 import { TagChip } from "@/components/tag-chip";
 import { uploadResourceFile } from "@/lib/resource-upload";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -149,6 +88,9 @@ export function NoteEditor({
   const isMobile = useIsMobile();
   const board = useExcalidrawBoard();
   const boardOpen = board !== null;
+  const ide = useCodeIDE();
+  const ideOpen = ide !== null;
+  const takeoverOpen = boardOpen || ideOpen;
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [slashRange, setSlashRange] = React.useState<{ from: number; to: number } | null>(null);
   const handleOpenPicker = React.useCallback((from: number, to: number) => {
@@ -178,9 +120,10 @@ export function NoteEditor({
         Superscript,
         TaskList,
         TaskItem,
-        CodeBlockLowlight.configure({
+        CustomCodeBlock.configure({
           lowlight,
           enableTabIndentation: true,
+          defaultLanguage: "plaintext",
         }),
         TableKit.configure({
           table: { resizable: true },
@@ -628,18 +571,21 @@ export function NoteEditor({
   return (
     <div
       className={
-        boardOpen
+        takeoverOpen
           ? "flex w-full max-w-none flex-1 flex-col"
           : "mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-10 sm:px-6"
       }
     >
-      {/* Board takeover owns the whole note screen below the app top bar
+      {/* Takeover owns the whole note screen below the app top bar
           (which already shows the note title + sync status). Nothing else
-          shares the screen so the canvas gets maximum space. */}
-      {boardOpen ? (
+          shares the screen so the canvas / IDE gets maximum space.
+          IDE wins over board if both somehow open. */}
+      {ideOpen ? (
+        <CodeIdeHost noteTitle={title} />
+      ) : boardOpen ? (
         <ExcalidrawBoardHost noteTitle={title} />
       ) : null}
-      <div className={boardOpen ? "hidden" : "flex flex-col gap-5"}>
+      <div className={takeoverOpen ? "hidden" : "flex flex-col gap-5"}>
         <input
           ref={titleRef}
           value={title}
@@ -694,13 +640,13 @@ export function NoteEditor({
             className="h-6 w-28 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
         </div>
-        {/* The editor stays mounted while the board is open (hidden, NOT
+        {/* The editor stays mounted while a takeover is open (hidden, NOT
             unmounted): unmounting EditorContent destroys all TipTap NodeViews,
-            which would silently break saving the board back into its block. */}
+            which would silently break saving the board / IDE back into its block. */}
         <div
           ref={contentRef}
           data-tour="slash-blocks"
-          className={boardOpen ? "hidden" : "relative"}
+          className={takeoverOpen ? "hidden" : "relative"}
         >
           {/* Desktop slash menu — untouched, never mounted on mobile */}
           {!isMobile && <SlashMenu editor={editor} controllerRef={slashControllerRef} />}
@@ -715,8 +661,8 @@ export function NoteEditor({
           <BlockActionMenu editor={editor} isMobile={isMobile} contentRef={contentRef} />
         </div>
       </div>
-      {/* Mobile-only 3-part system — no leak to desktop, hidden while board open */}
-      {isMobile && !boardOpen && (
+      {/* Mobile-only 3-part system — no leak to desktop, hidden while takeover open */}
+      {isMobile && !takeoverOpen && (
         <>
           <MiniToolbar editor={editor} isMobile={isMobile} onAddBlock={handleToolbarAddBlock} userId={userId} />
           <BlockPickerSheet
