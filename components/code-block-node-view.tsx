@@ -19,12 +19,14 @@ import {
 } from "lucide-react";
 import {
   LANGUAGE_OPTIONS,
+  groupedLanguageOptions,
   languageForPicker,
   normalizeCodeLanguage,
 } from "@/lib/code-block-languages";
 import { runJavaScript } from "@/lib/code-runner/run-js";
 import { runPython } from "@/lib/code-runner/run-python";
 import { runCpp } from "@/lib/code-runner/run-cpp";
+import { runPhp } from "@/lib/code-runner/run-php";
 import { runViaPiston } from "@/lib/code-runner/piston-client";
 import {
   getInlinePreview,
@@ -33,7 +35,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -58,6 +62,40 @@ export const CustomCodeBlock = CodeBlockLowlight.extend({
   },
 });
 
+/**
+ * Text of the `css` code block directly following this block, or null.
+ * Used to merge a stylesheet into an `html` preview. Position-based, so it
+ * stays correct as blocks are inserted, deleted, or reordered.
+ */
+function followingSiblingCss(
+  editor: NodeViewProps["editor"],
+  getPos: NodeViewProps["getPos"]
+): string | null {
+  try {
+    const pos = getPos();
+    if (typeof pos !== "number") return null;
+    const $pos = editor.state.doc.resolve(pos);
+    const parent = $pos.parent;
+    const base = $pos.start();
+    // Identify our own index by absolute position, then peek at the next
+    // sibling (works at any nesting depth, not just top-level).
+    let found = -1;
+    parent.forEach((_child, offset, i) => {
+      if (base + offset === pos) found = i;
+    });
+    if (found < 0 || found + 1 >= parent.childCount) return null;
+    const next = parent.child(found + 1);
+    if (next.type.name !== "codeBlock") return null;
+    const lang = next.attrs.language;
+    if (normalizeCodeLanguage(lang) !== "css") return null;
+    const text = next.textContent ?? "";
+    if (!text.trim()) return null;
+    return text.slice(0, 50_000);
+  } catch {
+    return null;
+  }
+}
+
 function CodeBlockView(props: NodeViewProps) {
   const { node, updateAttributes, editor, selected } = props;
   const isEditable = editor.isEditable;
@@ -77,6 +115,7 @@ function CodeBlockView(props: NodeViewProps) {
   const [running, setRunning] = React.useState(false);
   const [output, setOutput] = React.useState<RunOutput | null>(null);
   const [outputOpen, setOutputOpen] = React.useState(false);
+  const [previewHidden, setPreviewHidden] = React.useState(false);
   const copyTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
@@ -91,10 +130,37 @@ function CodeBlockView(props: NodeViewProps) {
 
   const kind = runnerFor(currentLanguage);
   const pistonLang = pistonLanguageFor(currentLanguage);
-  const runnable = kind === "js" || kind === "python" || kind === "cpp" || kind === "remote";
+  const runnable =
+    kind === "js" ||
+    kind === "python" ||
+    kind === "cpp" ||
+    kind === "php" ||
+    kind === "remote";
   const isPreview = kind === "preview";
+
+  // HTML + CSS merge: when an `html` block is directly followed by a `css`
+  // block, the stylesheet is injected into the HTML preview so the two work
+  // together (otherwise the CSS only ever applies to sample markup).
+  // Re-resolved on every doc update so edits in the CSS block stay live.
+  const [docTick, setDocTick] = React.useState(0);
+  React.useEffect(() => {
+    const bump = () => setDocTick((t) => t + 1);
+    editor.on("update", bump);
+    return () => {
+      editor.off("update", bump);
+    };
+  }, [editor]);
+  const mergedCss = React.useMemo(() => {
+    if (currentLanguage !== "html") return null;
+    return followingSiblingCss(editor, props.getPos);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, currentLanguage, docTick, node]);
   const previewSrcDoc = isPreview
-    ? buildPreviewSrcDoc(currentLanguage, node.textContent ?? "")
+    ? buildPreviewSrcDoc(
+        currentLanguage,
+        node.textContent ?? "",
+        currentLanguage === "html" ? mergedCss : null
+      )
     : null;
 
   async function handleCopy() {
@@ -135,6 +201,9 @@ function CodeBlockView(props: NodeViewProps) {
       } else if (kind === "cpp") {
         const result = await runCpp(code);
         setOutput({ kind: "cpp", result });
+      } else if (kind === "php") {
+        const result = await runPhp(code);
+        setOutput({ kind: "php", result });
       } else if (kind === "remote" && pistonLang) {
         const result = await runViaPiston(pistonLang, code);
         setOutput({ kind: "piston", result });
@@ -194,6 +263,9 @@ function CodeBlockView(props: NodeViewProps) {
       language: currentLanguage,
       code: node.textContent ?? "",
       onSave: handleIdeSave,
+      // Stylesheet of the directly-following CSS block (HTML only), so the
+      // IDE preview matches the merged inline preview.
+      siblingCss: currentLanguage === "html" ? mergedCss : null,
       // Session-only share: inline run -> Expand shows the same output, and
       // IDE run/clear syncs back here via onOutput so Back shows it inline.
       initialOutput: output,
@@ -206,6 +278,7 @@ function CodeBlockView(props: NodeViewProps) {
     currentLanguage,
     editor,
     handleIdeSave,
+    mergedCss,
     node,
     output,
     selectNode,
@@ -234,6 +307,17 @@ function CodeBlockView(props: NodeViewProps) {
           <Select
             value={pickerValue}
             onValueChange={(next) => {
+              // A previous run belongs to the previous runner: keep it only
+              // when the runner kind is unchanged (e.g. JavaScript ->
+              // TypeScript), otherwise a stale error pill would linger next
+              // to output of a different kind (e.g. an HTML preview).
+              if (
+                runnerFor(normalizeCodeLanguage(next)) !==
+                runnerFor(currentLanguage)
+              ) {
+                setOutput(null);
+                setOutputOpen(false);
+              }
               updateAttributes({ language: next });
               // Keep focus in the editor so typing continues in the block.
               try {
@@ -250,10 +334,15 @@ function CodeBlockView(props: NodeViewProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper" align="start" className="max-h-64">
-              {LANGUAGE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
+              {groupedLanguageOptions().map((g) => (
+                <SelectGroup key={g.label}>
+                  <SelectLabel>{g.label}</SelectLabel>
+                  {g.options.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               ))}
             </SelectContent>
           </Select>
@@ -348,28 +437,96 @@ function CodeBlockView(props: NodeViewProps) {
       </pre>
 
       {isPreview && previewSrcDoc !== null ? (
-        <div
-          className="code-block-output"
-          contentEditable={false}
-          suppressContentEditableWarning
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <div className="code-block-output-header">
-            <span className="code-block-output-title">
-              <TerminalIcon className="size-3.5" />
-              Preview
-              <span className="code-block-output-meta">
-                sandboxed · live
+        previewHidden ? (
+          <div
+            className="code-block-output"
+            contentEditable={false}
+            suppressContentEditableWarning
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="code-block-output-header">
+              <span className="code-block-output-title">
+                <TerminalIcon className="size-3.5" />
+                Preview
+                <span className="code-block-output-meta">hidden</span>
               </span>
-            </span>
+              <span className="code-block-output-actions">
+                <button
+                  type="button"
+                  className="code-block-btn"
+                  title="Show preview"
+                  aria-label="Show preview"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setPreviewHidden(false);
+                  }}
+                >
+                  <ExpandIcon className="size-3.5" />
+                  <span className="hidden sm:inline">Show</span>
+                </button>
+              </span>
+            </div>
           </div>
-          <iframe
-            sandbox="allow-scripts"
-            srcDoc={previewSrcDoc}
-            title={`Preview (${currentLanguage})`}
-            className="code-block-preview-frame"
-          />
-        </div>
+        ) : (
+          <div
+            className="code-block-output"
+            contentEditable={false}
+            suppressContentEditableWarning
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="code-block-output-header">
+              <span className="code-block-output-title">
+                <TerminalIcon className="size-3.5" />
+                Preview
+                <span className="code-block-output-meta">
+                  sandboxed · live
+                  {currentLanguage === "html" && mergedCss
+                    ? " · + CSS from next block"
+                    : ""}
+                </span>
+              </span>
+              <span className="code-block-output-actions">
+                <button
+                  type="button"
+                  className="code-block-btn"
+                  title="Expand to full preview"
+                  aria-label="Expand to full preview"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openIde();
+                  }}
+                >
+                  <ExpandIcon className="size-3.5" />
+                  <span className="hidden sm:inline">Expand</span>
+                </button>
+                <button
+                  type="button"
+                  className="code-block-btn"
+                  title="Hide preview"
+                  aria-label="Hide preview"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setPreviewHidden(true);
+                  }}
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+              </span>
+            </div>
+            <iframe
+              sandbox="allow-scripts"
+              srcDoc={previewSrcDoc}
+              title={`Preview (${currentLanguage})`}
+              className="code-block-preview-frame"
+            />
+          </div>
+        )
       ) : null}
 
       {output && outputOpen ? (
@@ -389,7 +546,9 @@ function CodeBlockView(props: NodeViewProps) {
                   ? ` · exit ${output.result.exitCode}`
                   : output.kind === "cpp" && output.result.exitCode !== null
                     ? ` · exit ${output.result.exitCode}`
-                    : ""}
+                    : output.kind === "php" && output.result.exitCode !== null
+                      ? ` · exit ${output.result.exitCode}`
+                      : ""}
               </span>
             </span>
             <span className="code-block-output-actions">
@@ -532,7 +691,7 @@ function RunOutputBody({ output }: { output: RunOutput }) {
       </pre>
     );
   }
-  if (output.kind === "cpp") {
+  if (output.kind === "cpp" || output.kind === "php") {
     const { result } = output;
     if (!result.output && !result.error) {
       return (

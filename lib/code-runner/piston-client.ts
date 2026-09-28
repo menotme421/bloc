@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * Client for the optional Piston proxy (`POST /api/run`).
+ * Client for the optional remote runner (`POST /api/run`, Java-only).
  * Disabled unless `NEXT_PUBLIC_ENABLE_PISTON_RUNNER === "true"`.
  *
- * NOTE (Feb 2026): the public emkc.org instance is whitelist-only and needs
- * an authorization token. Point PISTON_API_URL at a self-hosted instance or
- * set PISTON_API_KEY server-side — see `.env.example` and `app/api/run/route.ts`.
+ * The server picks the upstream via RUN_PROVIDER: self-hosted Piston or
+ * JDoodle cloud (no hosting needed — see `.env.example`). The response
+ * shape is provider-agnostic, so this client works with either.
  */
 
 export const isPistonRunnerEnabled =

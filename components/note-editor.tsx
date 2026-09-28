@@ -193,6 +193,12 @@ export function NoteEditor({
         attributes: {
           class: "note-content min-h-[320px] focus:outline-none",
         },
+        // Keep ~120px of breathing room around the caret on every
+        // transaction — without this ProseMirror only scrolls the cursor
+        // barely into view, so typing pins it at the viewport bottom edge.
+        // Paired with trailing padding in globals.css (there must be space
+        // below the last line to scroll into).
+        scrollMargin: 120,
         handleKeyDown: (_view, event) => {
           if (slashControllerRef.current?.onKeyDown(event)) return true;
           if (

@@ -13,7 +13,7 @@ import {
   XIcon,
 } from "lucide-react";
 import {
-  LANGUAGE_OPTIONS,
+  groupedLanguageOptions,
   languageForPicker,
   languageLabel,
   normalizeCodeLanguage,
@@ -21,13 +21,16 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { runJavaScript } from "@/lib/code-runner/run-js";
 import { runPython } from "@/lib/code-runner/run-python";
 import { runCpp } from "@/lib/code-runner/run-cpp";
+import { runPhp } from "@/lib/code-runner/run-php";
 import { runViaPiston } from "@/lib/code-runner/piston-client";
 import {
   consoleText,
@@ -46,6 +49,8 @@ export type CodeIdeRequest = {
   language: string;
   code: string;
   onSave: (code: string, language: string) => void;
+  /** Stylesheet of the directly-following CSS block (HTML only). */
+  siblingCss?: string | null;
   /** Last run output from the inline block (session-only), if any. */
   initialOutput?: RunOutput | null;
   /** Called on run/clear so the inline block shows the same output on Back. */
@@ -327,10 +332,19 @@ function CodeIde({
   const handleLanguageChange = React.useCallback(
     (next: string) => {
       const normalized = normalizeCodeLanguage(next);
+      // Same rule as the inline picker: a previous run belongs to the
+      // previous runner kind — clear it so a stale error pill can't linger
+      // next to output of a different kind (e.g. an HTML preview).
+      if (runnerFor(normalized) !== runnerFor(language)) {
+        setOutput(null);
+        try {
+          onOutputRef.current?.(null);
+        } catch {}
+      }
       setLanguage(normalized);
       scheduleSave(code, normalized);
     },
-    [code, scheduleSave]
+    [code, language, scheduleSave]
   );
 
   // Tab inserts two spaces instead of leaving the editor.
@@ -438,12 +452,31 @@ function CodeIde({
   const kind = runnerFor(language);
   const pistonLang = pistonLanguageFor(language);
   const runnable =
-    kind === "js" || kind === "python" || kind === "cpp" || kind === "remote";
+    kind === "js" ||
+    kind === "python" ||
+    kind === "cpp" ||
+    kind === "php" ||
+    kind === "remote";
   const isPreview = kind === "preview";
-  const previewSrcDoc = isPreview ? buildPreviewSrcDoc(language, code) : null;
-  // stdin only matters for programs that read it; keep the box to
-  // js (harmless), python, c++ subset, and remote runs.
-  const stdinVisible = !isPreview && kind !== "none";
+  const previewSrcDoc = isPreview
+    ? buildPreviewSrcDoc(
+        language,
+        code,
+        language === "html" ? (request.siblingCss ?? null) : null
+      )
+    : null;
+  const previewMergedCss =
+    isPreview && language === "html"
+      ? (request.siblingCss ?? null)
+      : null;
+  // stdin only matters for programs that read it; v1 supports it for
+  // js (harmless), python, c++ subset, php, and remote runs.
+  const stdinVisible =
+    kind === "js" ||
+    kind === "python" ||
+    kind === "cpp" ||
+    kind === "php" ||
+    kind === "remote";
 
   const runTitle = runnerTitle(kind, language);
   const consoleRef = React.useRef<HTMLDivElement | null>(null);
@@ -487,6 +520,15 @@ function CodeIde({
               return output.result.error
                 ? { state: "error", label: `error${exit} · ${ms}` }
                 : { state: "ok", label: `c++ subset${exit} · ${ms}` };
+            }
+            case "php": {
+              const exit =
+                output.result.exitCode !== null
+                  ? ` · exit ${output.result.exitCode}`
+                  : "";
+              return output.result.error
+                ? { state: "error", label: `error${exit} · ${ms}` }
+                : { state: "ok", label: `php-wasm${exit} · ${ms}` };
             }
             case "piston": {
               const compileFailed =
@@ -549,6 +591,9 @@ function CodeIde({
       } else if (kind === "cpp") {
         const result = await runCpp(code, { stdin });
         next = { kind: "cpp", result };
+      } else if (kind === "php") {
+        const result = await runPhp(code, { stdin });
+        next = { kind: "php", result };
       } else if (kind === "remote" && pistonLang) {
         const result = await runViaPiston(pistonLang, code, { stdin });
         next = { kind: "piston", result };
@@ -603,10 +648,15 @@ function CodeIde({
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper" align="start" className="max-h-64">
-              {LANGUAGE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
+              {groupedLanguageOptions().map((g) => (
+                <SelectGroup key={g.label}>
+                  <SelectLabel>{g.label}</SelectLabel>
+                  {g.options.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               ))}
             </SelectContent>
           </Select>
@@ -715,7 +765,10 @@ function CodeIde({
               <span className="code-ide-panel-title">
                 <TerminalIcon className="size-3.5" />
                 Preview
-                <span className="code-ide-meta">sandboxed · live</span>
+                <span className="code-ide-meta">
+                  sandboxed · live
+                  {previewMergedCss ? " · + CSS from next block" : ""}
+                </span>
               </span>
             ) : (
               <div
@@ -809,7 +862,7 @@ function CodeIde({
             <label className="code-ide-stdin-tab">
               <span className="code-ide-stdin-label">
                 Program input — one line per row, fed to input() / cin /
-                Scanner on the next run
+                Scanner / php://stdin on the next run
               </span>
               <textarea
                 className="code-ide-stdin-area code-ide-stdin-area-fill"
@@ -835,6 +888,12 @@ function CodeIde({
             <div className="code-ide-hint">
               Remote Java: use <code>public class Main</code> to match the
               runner entrypoint.
+            </div>
+          ) : null}
+          {previewMergedCss ? (
+            <div className="code-ide-hint">
+              Styles merged from the CSS block directly below this one — edit
+              them there.
             </div>
           ) : null}
         </div>
@@ -924,7 +983,7 @@ function IdeOutputBody({
       </pre>
     );
   }
-  if (output.kind === "cpp") {
+  if (output.kind === "cpp" || output.kind === "php") {
     const { result } = output;
     if (!result.output && !result.error) {
       return (

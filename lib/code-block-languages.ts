@@ -1,9 +1,11 @@
 "use client";
 
+import { runnerFor } from "@/lib/code-runner/registry";
+
 /**
  * Shared language list for the Notion-style code block.
  * Values must match the keys registered in `@/lib/code-block-lowlight`
- * (canonical names + common aliases like `js`, `ts`, `py`, `sh`).
+ * (canonical names + common aliases like `js`, `ts`, `py`).
  */
 
 export type CodeLanguageOption = {
@@ -20,16 +22,11 @@ export const LANGUAGE_OPTIONS: CodeLanguageOption[] = [
   { value: "css", label: "CSS" },
   { value: "markdown", label: "Markdown" },
   { value: "python", label: "Python" },
-  { value: "bash", label: "Bash" },
-  { value: "shell", label: "Shell" },
-  { value: "sql", label: "SQL" },
   { value: "yaml", label: "YAML" },
   { value: "xml", label: "XML" },
   { value: "java", label: "Java" },
   { value: "c", label: "C" },
   { value: "cpp", label: "C++" },
-  { value: "go", label: "Go" },
-  { value: "rust", label: "Rust" },
   { value: "php", label: "PHP" },
   { value: "http", label: "HTTP" },
   { value: "ini", label: "INI" },
@@ -44,8 +41,6 @@ const ALIAS_MAP: Record<string, string> = {
   ts: "typescript",
   tsx: "typescript",
   py: "python",
-  sh: "shell",
-  zsh: "bash",
   yml: "yaml",
   md: "markdown",
   html: "html",
@@ -53,7 +48,6 @@ const ALIAS_MAP: Record<string, string> = {
   text: "plaintext",
   txt: "plaintext",
   "c++": "cpp",
-  rs: "rust",
 };
 
 /** Languages runnable 100% in-browser (no server, no cost). */
@@ -69,6 +63,7 @@ const LOCALLY_RUNNABLE = new Set([
   "c",
   "cpp",
   "c++",
+  "php",
   "html",
   "css",
 ]);
@@ -101,4 +96,42 @@ export function languageLabel(language: unknown): string {
   return (
     LANGUAGE_OPTIONS.find((o) => o.value === normalized)?.label ?? "Plain text"
   );
+}
+
+export type LanguageGroup = {
+  label: string;
+  options: CodeLanguageOption[];
+};
+
+/**
+ * Picker sections so users can tell at a glance what executes: runnable
+ * languages first, then live previews, then highlight-only grammars.
+ * Grouping follows the real runner state — Java lands under "Can run"
+ * only when the remote runner is enabled, otherwise "Highlight only".
+ */
+export function groupedLanguageOptions(): LanguageGroup[] {
+  const runnable: CodeLanguageOption[] = [];
+  const preview: CodeLanguageOption[] = [];
+  const highlight: CodeLanguageOption[] = [];
+  for (const o of LANGUAGE_OPTIONS) {
+    const kind = runnerFor(o.value);
+    if (
+      kind === "js" ||
+      kind === "python" ||
+      kind === "cpp" ||
+      kind === "php" ||
+      kind === "remote"
+    ) {
+      runnable.push(o);
+    } else if (kind === "preview") {
+      preview.push(o);
+    } else {
+      highlight.push(o);
+    }
+  }
+  return [
+    { label: "Can run", options: runnable },
+    { label: "Preview", options: preview },
+    { label: "Highlight only", options: highlight },
+  ].filter((g) => g.options.length > 0);
 }

@@ -5,9 +5,10 @@
  *
  * Fidelity note: this is NOT g++. It handles basic iostream/stdio, loops,
  * functions, arrays, and common headers (iostream, cstdio, cstring, cmath,
- * …). Templates-heavy code, most of the STL (vector/map/…), and C++17/20
- * features will fail — the error message says so, and the remote Piston
- * runner remains the full-fidelity path.
+ * …). It does NOT understand `::` scope resolution (write `cout`, not
+ * `std::cout`, with `using namespace std;`). Templates-heavy code, most of
+ * the STL (vector/map/…), and C++17/20 features will fail — the error
+ * message says so.
  */
 
 export type CppRunResult = {
@@ -20,6 +21,26 @@ export type CppRunResult = {
 const TIMEOUT_MS = 8000;
 const MAX_CODE_CHARS = 50_000;
 const MAX_STDIN_CHARS = 10_000;
+
+/**
+ * The bundled JSCPP grammar has no `::` scope-resolution operator, so even
+ * `std::cout` fails to parse — yet it resolves unqualified `cout`/`cin`/`endl`
+ * without any `using namespace` directive (verified). Rewrite the iostream
+ * stream objects to their unqualified form before execution.
+ *
+ * Deliberately narrow (stream objects only): anything else qualified
+ * (`std::vector`, `MyClass::method`, …) still fails, and the error hint
+ * below explains why. Known edge: `std::cout` inside a string literal or
+ * comment is rewritten too — accepted over a hard parse failure.
+ */
+const STD_STREAM_NAMES = "cout|cin|cerr|clog|endl|flush|ends";
+
+function normalizeStdStreaming(code: string): string {
+  return code.replace(
+    new RegExp(`\\bstd::(${STD_STREAM_NAMES})\\b`, "g"),
+    "$1"
+  );
+}
 
 export function runCpp(
   code: string,
@@ -54,6 +75,9 @@ export function runCpp(
       typeof opts?.stdin === "string"
         ? opts.stdin.slice(0, MAX_STDIN_CHARS)
         : "";
+    // Unqualify iostream stream objects for the subset grammar (see above).
+    // Error hints below still inspect the ORIGINAL code.
+    const runnableCode = normalizeStdStreaming(code);
     let settled = false;
     let worker: Worker | null = null;
     const finish = (partial: Omit<CppRunResult, "output"> & { output?: string }) => {
@@ -95,14 +119,29 @@ export function runCpp(
       };
       if (!msg || msg.kind !== "done") return;
       let error = typeof msg.error === "string" ? msg.error : null;
-      if (
+      const parseFailed =
+        !!error && /Parsing Failure|":" found/.test(error);
+      const stlInCode =
+        /#include\s*<(vector|string|map|set|array|algorithm|unordered_map|bits\/)|std::(vector|string|map|set|array|deque|list|stack|queue|pair|template)/i.test(
+          code
+        );
+      if (error && /cannot find library/i.test(error)) {
+        error +=
+          "\nHint: that header isn't in this runner's supported set (iostream, cstdio, cstring, cmath, …). Templates and most of the STL need a full g++ toolchain, which isn't available in this workspace.";
+      } else if (error && parseFailed && stlInCode) {
+        error +=
+          "\nHint: the in-browser runner only supports a C++ subset (basic iostream/stdio, loops, functions, arrays). Templates, most STL containers (vector/map/…), and C++17/20 features need a full g++ toolchain, which isn't available in this workspace.";
+      } else if (error && parseFailed && /::/.test(code)) {
+        // `std::cout/cin/endl` are rewritten automatically before execution;
+        // anything else qualified still fails — the grammar has no `::` at all.
+        error +=
+          "\nHint: this runner's grammar has no `::` scope operator — qualified names other than the auto-rewritten iostream streams (e.g. your own `Class::method`, `std::this_thread`) aren't supported.";
+      } else if (
         error &&
-        /vector|map|template|namespace std::\w+|is not defined|no such/i.test(
-          error
-        )
+        /vector|map|template|is not defined|no such/i.test(error)
       ) {
         error +=
-          "\nHint: the in-browser runner only supports a C++ subset (basic iostream/stdio). For full STL/g++, enable the remote Piston runner.";
+          "\nHint: the in-browser runner only supports a C++ subset (basic iostream/stdio, loops, functions, arrays). Templates, most STL containers (vector/map/…), and C++17/20 features need a full g++ toolchain, which isn't available in this workspace.";
       } else if (
         error &&
         /cin|scanf/.test(code) &&
@@ -132,7 +171,7 @@ export function runCpp(
     };
 
     try {
-      worker.postMessage({ code, stdin });
+      worker.postMessage({ code: runnableCode, stdin });
     } catch (e) {
       finish({
         exitCode: null,

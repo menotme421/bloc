@@ -282,6 +282,16 @@
     font-size: 1rem;
   }
 
+  /* ── Typing room at the end of the note ─────────────────────
+     Trailing space lets the last line scroll up into comfortable view.
+     Without it the caret gets pinned at the viewport bottom edge with
+     nowhere to scroll (the page can't scroll past content that ends
+     there). Paired with scrollMargin in note-editor, which keeps ~120px
+     around the caret on every transaction. */
+  .note-content.ProseMirror {
+    padding-bottom: 35vh;
+  }
+
   .note-content h1,
   .note-content h2,
   .note-content h3 {
@@ -402,6 +412,29 @@
     border-radius: var(--radius-lg);
     margin: 0 0 0.75rem;
     overflow: hidden;
+  }
+
+  /* ── Block rhythm after heavy blocks ──────────────────────────
+     Code / upload-image / whiteboard cards need clearly more air below
+     them than plain text does: their borders and backgrounds carry visual
+     weight, so equal physical spacing still reads as cramped.
+
+     IMPORTANT: target the OUTER NodeView wrappers, not the inner card
+     classes (.code-block-wrap / .resource-node / .excalidraw-node).
+     TipTap v3's ReactNodeViewRenderer wraps every React NodeView in an
+     extra `<div class="react-renderer node-<typeName>">`, so the card is
+     never an adjacent sibling of the following block — selectors like
+     `.code-block-wrap + *` silently match nothing. The type names below
+     come from our Node definitions (codeBlock / resource / excalidraw).
+
+     Collapsing margins take the max rather than summing, so this never
+     stacks with the block's own margin — and empty-paragraph margin
+     collapsing can't eat it from this side. Headings and hr keep their
+     own larger top margins (excluded here). */
+  .note-content .node-codeBlock + *:not(h1):not(h2):not(h3):not(hr),
+  .note-content .node-resource + *:not(h1):not(h2):not(h3):not(hr),
+  .note-content .node-excalidraw + *:not(h1):not(h2):not(h3):not(hr) {
+    margin-top: 1.25rem;
   }
 
   .note-content .code-block-wrap.code-block-selected {

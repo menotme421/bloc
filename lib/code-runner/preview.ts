@@ -36,13 +36,28 @@ ${body}
 /**
  * Build an iframe `srcDoc` for a single code block. Only `html`/`css` are
  * previewable — anything else returns null.
+ *
+ * `extraCss` merges a companion stylesheet into an HTML preview (used when
+ * an `html` block is directly followed by a `css` block, so the two work
+ * together instead of the CSS only applying to sample markup).
  */
 export function buildPreviewSrcDoc(
   language: unknown,
-  code: string
+  code: string,
+  extraCss?: string | null
 ): string | null {
   const v = typeof language === "string" ? language.trim().toLowerCase() : "";
-  if (v === "html") return code;
+  if (v === "html") {
+    if (!extraCss || !extraCss.trim()) return code;
+    const style = `<style>\n${extraCss}\n</style>`;
+    if (/<\/head\s*>/i.test(code)) {
+      return code.replace(/<\/head\s*>/i, `${style}\n</head>`);
+    }
+    if (/<html[^>]*>/i.test(code)) {
+      return code.replace(/<html[^>]*>/i, (m) => `${m}\n${style}`);
+    }
+    return `${style}\n${code}`;
+  }
   if (v === "css") {
     return wrapDocument(`<style>\n${code}\n</style>`, CSS_SAMPLE_BODY);
   }

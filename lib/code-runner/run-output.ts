@@ -3,13 +3,20 @@
 import type { RunJsResult } from "@/lib/code-runner/run-js";
 import type { PythonRunResult } from "@/lib/code-runner/run-python";
 import type { CppRunResult } from "@/lib/code-runner/run-cpp";
+import type { PhpRunResult } from "@/lib/code-runner/run-php";
 import type { PistonRunResult } from "@/lib/code-runner/piston-client";
 
 export type JsOutput = { kind: "js"; result: RunJsResult };
 export type PythonOutput = { kind: "python"; result: PythonRunResult };
 export type CppOutput = { kind: "cpp"; result: CppRunResult };
+export type PhpOutput = { kind: "php"; result: PhpRunResult };
 export type PistonOutput = { kind: "piston"; result: PistonRunResult };
-export type RunOutput = JsOutput | PythonOutput | CppOutput | PistonOutput;
+export type RunOutput =
+  | JsOutput
+  | PythonOutput
+  | CppOutput
+  | PhpOutput
+  | PistonOutput;
 
 /** Plain-text console content for copy + measuring inline size. */
 export function consoleText(target: RunOutput): string {
@@ -28,6 +35,12 @@ export function consoleText(target: RunOutput): string {
       return parts.join("\n");
     }
     case "cpp": {
+      const parts: string[] = [];
+      if (target.result.output) parts.push(target.result.output);
+      if (target.result.error) parts.push(target.result.error);
+      return parts.join("\n");
+    }
+    case "php": {
       const parts: string[] = [];
       if (target.result.output) parts.push(target.result.output);
       if (target.result.error) parts.push(target.result.error);
