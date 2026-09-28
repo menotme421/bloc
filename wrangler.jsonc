@@ -4,6 +4,15 @@
   "name": "bloc",
   "compatibility_date": "2026-04-15",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Non-secret runtime config for the Java remote runner (POST /api/run).
+  // Secrets (JDOODLE_CLIENT_ID / JDOODLE_CLIENT_SECRET) stay dashboard-only
+  // and must NEVER be added here. NOTE: NEXT_PUBLIC_* is baked in at build
+  // time from .env.local, so it is intentionally not listed here either.
+  "vars": {
+    "ENABLE_PISTON_RUNNER": "true",
+    "RUN_PROVIDER": "jdoodle",
+    "JDOODLE_JAVA_VERSION_INDEX": "5"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
