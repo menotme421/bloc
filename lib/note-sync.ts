@@ -14,11 +14,22 @@ import {
 
 export type SyncStatus = "synced" | "saving" | "offline";
 
+function deviceOffline(): boolean {
+  try {
+    return typeof navigator !== "undefined" && navigator.onLine === false;
+  } catch {
+    return false;
+  }
+}
+
 export async function syncNote(
   userId: string,
   note: Note,
   mode: "create" | "update"
 ): Promise<SyncStatus> {
+  // Offline: never fire a server round-trip (with wifi on but no route out
+  // it hangs for tens of seconds and freezes the editor behind it).
+  if (deviceOffline()) return "offline";
   if (getTombstones(userId).includes(note.id)) {
     removeOutboxEntry(userId, note.id);
     return "synced";
@@ -69,6 +80,7 @@ export async function syncNote(
 }
 
 export async function syncPending(userId: string) {
+  if (deviceOffline()) return;
   const tombstones = getTombstones(userId);
   const outbox = getOutbox(userId);
 

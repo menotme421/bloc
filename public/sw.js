@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v10";
+const CACHE_VERSION = "v11";
 const STATIC_CACHE = `bloc-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `bloc-pages-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -62,6 +62,30 @@ function isAssetRequest(url) {
 
 function isAuthRequest(url) {
   return url.pathname.startsWith("/auth");
+}
+
+// Offline must be instant. With wifi on but no route out, fetch() hangs for
+// tens of seconds per request and the UI looks frozen/"stuck". Fast-path when
+// the browser knows we're offline, otherwise race the network with a timeout.
+const FETCH_TIMEOUT_MS = 2500;
+
+function isOffline() {
+  try {
+    return typeof navigator !== "undefined" && navigator.onLine === false;
+  } catch {
+    return false;
+  }
+}
+
+async function fetchWithTimeout(request) {
+  if (isOffline()) throw new Error("offline");
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(request, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // Offline app-shell fallback for newly created notes.
@@ -155,7 +179,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       (async () => {
         try {
-          const networkResponse = await fetch(request);
+          const networkResponse = await fetchWithTimeout(request);
           const cache = await caches.open(PAGES_CACHE);
           // Clone and cache successful navigations (only 200).
           // Never cache redirects (e.g. /app -> /auth) — response.url will
@@ -186,12 +210,12 @@ self.addEventListener("fetch", (event) => {
           }
           const offline = await caches.match(OFFLINE_URL);
           if (offline) return offline;
-          // Last resort: return offline-like response
-          return new Response("Offline", {
-            status: 503,
-            statusText: "Offline",
-            headers: { "Content-Type": "text/plain" },
-          });
+          // Last resort: inline shell. respondWith must NEVER reject —
+          // a rejection shows the browser's own error page.
+          return new Response(
+            "<!doctype html><html><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>Bloc offline</title></head><body style='font-family:system-ui;display:flex;min-height:100dvh;align-items:center;justify-content:center'><p>Offline — reopen Bloc to continue.</p></body></html>",
+            { headers: { "Content-Type": "text/html; charset=utf-8" } }
+          );
         }
       })()
     );
@@ -208,7 +232,7 @@ self.addEventListener("fetch", (event) => {
         const cached = await caches.match(request);
         if (cached) return cached;
         try {
-          const networkResponse = await fetch(request);
+          const networkResponse = await fetchWithTimeout(request);
           if (networkResponse && networkResponse.ok && !networkResponse.redirected) {
             const cache = await caches.open(STATIC_CACHE);
             cache.put(request, networkResponse.clone());
@@ -230,7 +254,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       (async () => {
         try {
-          const networkResponse = await fetch(request);
+          const networkResponse = await fetchWithTimeout(request);
           if (networkResponse && networkResponse.ok && !networkResponse.redirected) {
             const cache = await caches.open(PAGES_CACHE);
             cache.put(request, networkResponse.clone());
