@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v7";
+const CACHE_VERSION = "v8";
 const STATIC_CACHE = `bloc-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `bloc-pages-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
