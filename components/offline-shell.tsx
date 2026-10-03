@@ -3,11 +3,14 @@
 import * as React from "react";
 import {
   ArrowLeftIcon,
+  BookOpenIcon,
   FileTextIcon,
   LayoutGridIcon,
   ListIcon,
   PlusIcon,
   RefreshCwIcon,
+  SearchIcon,
+  Trash2Icon,
 } from "lucide-react";
 import {
   EMPTY_NOTES,
@@ -34,13 +37,16 @@ import { NoteEditor } from "@/components/note-editor";
 import { TagChip } from "@/components/tag-chip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-// Offline shell mirrors the app home + note visuals (same brand header,
-// view toggle, note cards, h-14 editor bar, sync badges) so offline feels
-// like the same interface. /offline is the one precached document, so after
-// a kill + offline restart all CRUD happens here with zero navigation
-// (a new /app/notes/<uuid> needs a server RSC fetch).
+// Offline shell mirrors the app on both form factors:
+// - mobile (<md): same brand header, view toggle, Recent/Created cards, + FAB
+// - desktop (md+): same left sidebar (brand, search, New note, recent,
+//   footer) + content column with h-14 editor bar and sync badges.
+// /offline is the one precached document, so after a kill + offline restart
+// all CRUD happens here with zero navigation (a new /app/notes/<uuid> needs
+// a server RSC fetch).
 
 function excerptFromHtml(html: string, len = 90): string {
   const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -106,12 +112,22 @@ function SyncBadge({ userId }: { userId: string }) {
   );
 }
 
+type CardNote = {
+  id: string;
+  title: string;
+  content: string;
+  tag: string | null;
+  updated_at: string;
+};
+
 export function OfflineShell() {
   const userId = useResolvedUserId("");
   const { t } = useI18n();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [view, setView] = React.useState<"grid" | "list">("grid");
   const [tagFilter, setTagFilter] = React.useState<string | null>(null);
+  const [query, setQuery] = React.useState("");
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   const storageKey = `bloc:home:view:${userId}`;
   React.useEffect(() => {
@@ -142,13 +158,30 @@ export function OfflineShell() {
     () => EMPTY_NOTES
   );
 
+  const matchesQuery = React.useCallback(
+    (n: CardNote) => {
+      const q = query.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        n.title.toLowerCase().includes(q) || (n.tag ?? "").toLowerCase().includes(q)
+      );
+    },
+    [query]
+  );
+
+  const sidebarRecent = React.useMemo(
+    () => recent.filter(matchesQuery),
+    [recent, matchesQuery]
+  );
+
   const created = React.useMemo(() => {
     const sorted = [...allNotes].sort(
       (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)
     );
-    if (!tagFilter) return sorted;
-    return sorted.filter((n) => n.tag === tagFilter);
-  }, [allNotes, tagFilter]);
+    return sorted
+      .filter((n) => (tagFilter ? n.tag === tagFilter : true))
+      .filter(matchesQuery);
+  }, [allNotes, tagFilter, matchesQuery]);
 
   React.useEffect(() => {
     if (userId) adoptOrphanedNotes(userId);
@@ -160,6 +193,11 @@ export function OfflineShell() {
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
   }, [userId]);
+
+  // Reset delete-confirm when switching notes.
+  React.useEffect(() => {
+    setConfirmDelete(false);
+  }, [selectedId]);
 
   const pending = userId ? getOutbox(userId).length : 0;
   const selected = userId && selectedId ? getNoteSnapshot(userId, selectedId) : null;
@@ -199,50 +237,7 @@ export function OfflineShell() {
     );
   }
 
-  // ── Editor view (mirrors /app/notes/[id]: h-14 bar + editor) ──
-  if (selectedId) {
-    return (
-      <main className="min-h-dvh flex flex-col bg-background text-foreground">
-        <header className="flex h-14 shrink-0 items-center gap-2">
-          <div className="flex flex-1 items-center gap-2 px-3">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Back to home"
-              onClick={() => setSelectedId(null)}
-            >
-              <ArrowLeftIcon />
-              <span className="sr-only">Back</span>
-            </Button>
-            <span className="line-clamp-1 max-w-60 text-sm font-medium">
-              {selected?.title.trim() || t("common.untitled")}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 px-3" data-tour="sync-status">
-            <SyncBadge userId={userId} />
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 pb-28 md:pb-4">
-          {selected ? (
-            <NoteEditor
-              key={selected.id}
-              userId={userId}
-              note={selected}
-              noteId={selected.id}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">Note not found on this device.</p>
-          )}
-        </div>
-      </main>
-    );
-  }
-
-  // ── Home view (mirrors MobileHome: brand, toggle, recent, created) ──
-  const renderCard = (
-    note: { id: string; title: string; content: string; tag: string | null; updated_at: string },
-    variant: "grid" | "list"
-  ) => {
+  const renderCard = (note: CardNote, variant: "grid" | "list") => {
     const isList = variant === "list";
     const excerpt = excerptFromHtml(note.content);
     return (
@@ -327,120 +322,307 @@ export function OfflineShell() {
     );
   };
 
-  return (
-    <main className="min-h-dvh flex flex-col bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-28 md:pb-4">
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[1.75rem] font-bold tracking-tight leading-none">Bloc</span>
-          </div>
-          <SyncBadge userId={userId} />
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            {tagFilter ? (
-              <>
-                <TagChip tag={tagFilter} className="h-6" />
-                <button
-                  type="button"
-                  onClick={() => setTagFilter(null)}
-                  className="shrink-0 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+  const sidebar = (
+    <aside className="hidden md:flex w-72 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+      <div className="flex items-center gap-2 px-4 pt-4 pb-2">
+        <span className="truncate text-[1.75rem] font-bold tracking-tight leading-none">
+          Bloc
+        </span>
+      </div>
+      <div className="px-4 pb-2">
+        <label className="flex items-center gap-2 rounded-lg border bg-card px-2.5 py-2 text-sm text-muted-foreground focus-within:text-foreground">
+          <SearchIcon className="size-4 shrink-0" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("sidebar.search")}
+            className="w-full bg-transparent outline-none placeholder:text-muted-foreground"
+          />
+        </label>
+        <Button className="mt-2 w-full" onClick={handleCreate} disabled={!userId}>
+          <PlusIcon className="size-4" />
+          {t("sidebar.createNote")}
+        </Button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 py-2">
+        <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+          {t("sidebar.recent")}
+        </p>
+        {sidebarRecent.length > 0 ? (
+          <ul className="flex flex-col gap-0.5">
+            {sidebarRecent.map((n) => (
+              <li key={n.id}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openInline(n.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openInline(n.id);
+                    }
+                  }}
+                  className={cn(
+                    "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted",
+                    selectedId === n.id && "bg-muted font-medium"
+                  )}
                 >
-                  Clear
-                </button>
-              </>
+                  <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {n.title.trim() || t("common.untitled")}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Delete note"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(n.id);
+                    }}
+                    className="hidden shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover:block"
+                  >
+                    <Trash2Icon className="size-3.5" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            {t("sidebar.noNotesYet")}
+          </p>
+        )}
+      </div>
+      <div className="border-t p-4">
+        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground">
+          <BookOpenIcon className="size-4" />
+          <span>{t("help.helpCenter")}</span>
+        </div>
+        <Separator className="my-2" />
+        <SyncBadge userId={userId} />
+        {pending > 0 && (
+          <p className="mt-1 px-2 text-xs text-muted-foreground">
+            {pending} change{pending === 1 ? "" : "s"} queued
+          </p>
+        )}
+      </div>
+    </aside>
+  );
+
+  // ── Editor view ──
+  if (selectedId) {
+    return (
+      <div className="min-h-dvh flex bg-background text-foreground">
+        {sidebar}
+        <main className="flex min-w-0 flex-1 flex-col">
+          <header className="flex h-14 shrink-0 items-center gap-2">
+            <div className="flex flex-1 items-center gap-2 px-3">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Back to home"
+                onClick={() => setSelectedId(null)}
+                className="md:hidden"
+              >
+                <ArrowLeftIcon />
+                <span className="sr-only">Back</span>
+              </Button>
+              <span className="line-clamp-1 max-w-60 text-sm font-medium md:max-w-120">
+                {selected?.title.trim() || t("common.untitled")}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-3" data-tour="sync-status">
+              <SyncBadge userId={userId} />
+              {confirmDelete ? (
+                <>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => handleDelete(selectedId)}
+                  >
+                    Confirm?
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    Keep
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Delete note"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2Icon className="size-4" />
+                  <span className="sr-only">Delete</span>
+                </Button>
+              )}
+            </div>
+          </header>
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0 pb-28 md:pb-4">
+            {selected ? (
+              <NoteEditor
+                key={selected.id}
+                userId={userId}
+                note={selected}
+                noteId={selected.id}
+              />
             ) : (
-              pending > 0 && (
-                <span className="truncate text-xs text-muted-foreground">
-                  {pending} change{pending === 1 ? "" : "s"} queued — syncs on reconnect
-                </span>
-              )
+              <p className="text-sm text-muted-foreground">Note not found on this device.</p>
             )}
           </div>
-          <div
-            role="group"
-            aria-label={t("home.viewMode")}
-            className="inline-flex shrink-0 items-center rounded-full border bg-muted p-1"
-          >
-            <button
-              type="button"
-              aria-label={t("home.gridView")}
-              aria-pressed={view === "grid"}
-              onClick={() => updateView("grid")}
-              className={`flex size-7 items-center justify-center rounded-full transition-colors ${view === "grid" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              <LayoutGridIcon className="size-4" />
-            </button>
-            <button
-              type="button"
-              aria-label={t("home.listView")}
-              aria-pressed={view === "list"}
-              onClick={() => updateView("list")}
-              className={`flex size-7 items-center justify-center rounded-full transition-colors ${view === "list" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              <ListIcon className="size-4" />
-            </button>
+        </main>
+      </div>
+    );
+  }
+
+  // ── Home view ──
+  return (
+    <div className="min-h-dvh flex bg-background text-foreground">
+      {sidebar}
+      <main className="flex min-w-0 flex-1 flex-col">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-28 md:pb-4">
+          {/* Mobile brand row (desktop has the sidebar brand) */}
+          <div className="flex items-center justify-between pt-2 md:hidden">
+            <div className="flex items-center gap-2">
+              <span className="text-[1.75rem] font-bold tracking-tight leading-none">
+                Bloc
+              </span>
+            </div>
+            <SyncBadge userId={userId} />
           </div>
+
+          {/* Desktop content header */}
+          <div className="hidden items-center justify-between pt-4 md:flex">
+            <h1 className="text-lg font-semibold">{t("header.home")}</h1>
+            <SyncBadge userId={userId} />
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              {tagFilter ? (
+                <>
+                  <TagChip tag={tagFilter} className="h-6" />
+                  <button
+                    type="button"
+                    onClick={() => setTagFilter(null)}
+                    className="shrink-0 text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    Clear
+                  </button>
+                </>
+              ) : (
+                pending > 0 && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {pending} change{pending === 1 ? "" : "s"} queued — syncs on reconnect
+                  </span>
+                )
+              )}
+            </div>
+            <div
+              role="group"
+              aria-label={t("home.viewMode")}
+              className="inline-flex shrink-0 items-center rounded-full border bg-muted p-1"
+            >
+              <button
+                type="button"
+                aria-label={t("home.gridView")}
+                aria-pressed={view === "grid"}
+                onClick={() => updateView("grid")}
+                className={`flex size-7 items-center justify-center rounded-full transition-colors ${view === "grid" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <LayoutGridIcon className="size-4" />
+              </button>
+              <button
+                type="button"
+                aria-label={t("home.listView")}
+                aria-pressed={view === "list"}
+                onClick={() => updateView("list")}
+                className={`flex size-7 items-center justify-center rounded-full transition-colors ${view === "list" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <ListIcon className="size-4" />
+              </button>
+            </div>
+          </div>
+
+          <section className="flex flex-col gap-3" data-tour="recent">
+            <h2 className="text-sm font-semibold">{t("home.recent")}</h2>
+            {recent.length > 0 ? (
+              <div
+                className={
+                  view === "grid"
+                    ? "grid grid-cols-2 gap-3 md:grid-cols-3"
+                    : "flex flex-col gap-2"
+                }
+              >
+                {recent
+                  .filter(matchesQuery)
+                  .filter((n) => (tagFilter ? n.tag === tagFilter : true))
+                  .map((note) => renderCard(note, view))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed bg-card p-6 text-center">
+                <p className="text-sm text-muted-foreground">{t("home.noRecent")}</p>
+                <Button type="button" size="sm" className="mt-3" onClick={handleCreate}>
+                  <PlusIcon className="size-3.5" />
+                  {t("home.createNote")}
+                </Button>
+              </div>
+            )}
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold">{t("home.created")}</h2>
+            {created.length > 0 ? (
+              <div
+                className={
+                  view === "grid"
+                    ? "grid grid-cols-2 gap-3 md:grid-cols-3"
+                    : "flex flex-col gap-2"
+                }
+              >
+                {created.map((note) => renderCard(note, view))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed bg-card p-6 text-center">
+                <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-muted">
+                  <FileTextIcon className="size-5 text-muted-foreground" />
+                </div>
+                <p className="mt-3 text-sm font-medium">{t("home.noNotesYet")}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("home.createFirstNoteDesc")}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-4"
+                  onClick={handleCreate}
+                  data-tour="create-note"
+                >
+                  <PlusIcon className="size-3.5" />
+                  {t("home.newNote")}
+                </Button>
+              </div>
+            )}
+          </section>
         </div>
 
-        <section className="flex flex-col gap-3" data-tour="recent">
-          <h2 className="text-sm font-semibold">{t("home.recent")}</h2>
-          {recent.length > 0 ? (
-            <div className={view === "grid" ? "grid grid-cols-2 gap-3" : "flex flex-col gap-2"}>
-              {recent.map((note) => renderCard(note, view))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed bg-card p-6 text-center">
-              <p className="text-sm text-muted-foreground">{t("home.noRecent")}</p>
-              <Button type="button" size="sm" className="mt-3" onClick={handleCreate}>
-                <PlusIcon className="size-3.5" />
-                {t("home.createNote")}
-              </Button>
-            </div>
-          )}
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold">{t("home.created")}</h2>
-          {created.length > 0 ? (
-            <div className={view === "grid" ? "grid grid-cols-2 gap-3" : "flex flex-col gap-2"}>
-              {created.map((note) => renderCard(note, view))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed bg-card p-6 text-center">
-              <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-muted">
-                <FileTextIcon className="size-5 text-muted-foreground" />
-              </div>
-              <p className="mt-3 text-sm font-medium">{t("home.noNotesYet")}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t("home.createFirstNoteDesc")}
-              </p>
-              <Button
-                type="button"
-                size="sm"
-                className="mt-4"
-                onClick={handleCreate}
-                data-tour="create-note"
-              >
-                <PlusIcon className="size-3.5" />
-                {t("home.newNote")}
-              </Button>
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* Mobile FAB (mirrors bottom-nav new-note button) */}
-      <button
-        type="button"
-        aria-label={t("nav.newNote")}
-        data-tour="create-note"
-        onClick={handleCreate}
-        className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition active:scale-95 fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-4 z-40 md:hidden"
-      >
-        <PlusIcon className="size-6" />
-      </button>
-    </main>
+        {/* Mobile FAB (mirrors bottom-nav new-note button) */}
+        <button
+          type="button"
+          aria-label={t("nav.newNote")}
+          data-tour="create-note"
+          onClick={handleCreate}
+          className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition active:scale-95 fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-4 z-40 md:hidden"
+        >
+          <PlusIcon className="size-6" />
+        </button>
+      </main>
+    </div>
   );
 }
