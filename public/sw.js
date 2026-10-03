@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const STATIC_CACHE = `bloc-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `bloc-pages-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -71,42 +71,60 @@ function isAuthRequest(url) {
 // opens (old notes work because their RSC was cached at runtime).
 // Return any previously cached /app shell so Next.js can boot and
 // NoteEditor can load the note from localStorage by URL id.
-async function findAppShellFallback() {
+async function findAppShellFallback(wantRsc) {
   const cache = await caches.open(PAGES_CACHE);
-  // 1) Preferred shells (exact URL match, document or RSC).
+  let keys = [];
+  try {
+    keys = await cache.keys();
+  } catch {
+    return null;
+  }
+  const pathOf = (r) => {
+    try {
+      return new URL(r.url).pathname;
+    } catch {
+      return "";
+    }
+  };
+  // NOTE: document (navigate) needs text/html, RSC needs text/x-component.
+  // Returning the wrong kind breaks Next.js parsing — that is why v5 alone
+  // still failed. Prefer same-component-tree note shells first.
+  const rank = (p) => {
+    if (p.startsWith("/app/notes/")) return 0;
+    if (p === "/app/notes" || p === "/app/home" || p === "/app") return 1;
+    if (p.startsWith("/app/")) return 2;
+    return 9;
+  };
+  const ordered = keys
+    .map((r) => ({ r, p: pathOf(r), rank: rank(pathOf(r)) }))
+    .filter((x) => x.rank < 9)
+    .sort((a, b) => a.rank - b.rank);
+  for (const { r } of ordered) {
+    let res = null;
+    try {
+      res = await cache.match(r);
+    } catch {
+      continue;
+    }
+    if (!res) continue;
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    const isRsc = ct.includes("text/x-component") || ct.includes("multipart/mixed");
+    const isDoc = ct.includes("text/html");
+    if (wantRsc && isRsc) return res;
+    if (!wantRsc && isDoc) return res;
+  }
+  // Last resort: exact shell match of the right kind (ignores content-type).
   for (const shell of ["/app/home", "/app", "/app/notes"]) {
     try {
       const hit = await cache.match(shell);
-      if (hit) return hit;
+      if (hit) {
+        const ct = (hit.headers.get("content-type") || "").toLowerCase();
+        if (wantRsc && ct.includes("text/html")) continue;
+        if (!wantRsc && !ct.includes("text/html")) continue;
+        return hit;
+      }
     } catch {}
   }
-  // 2) Any cached note page — same component tree, NoteEditor
-  // corrects the data client-side via localStorage (see handleResolve).
-  try {
-    const keys = await cache.keys();
-    const noteKey = keys.find((r) => {
-      try {
-        return new URL(r.url).pathname.startsWith("/app/notes/");
-      } catch {
-        return false;
-      }
-    });
-    if (noteKey) {
-      const hit = await cache.match(noteKey);
-      if (hit) return hit;
-    }
-    const appKey = keys.find((r) => {
-      try {
-        return new URL(r.url).pathname.startsWith("/app/");
-      } catch {
-        return false;
-      }
-    });
-    if (appKey) {
-      const hit = await cache.match(appKey);
-      if (hit) return hit;
-    }
-  } catch {}
   return null;
 }
 
@@ -160,10 +178,10 @@ self.addEventListener("fetch", (event) => {
         } catch (err) {
           const cached = await caches.match(request);
           if (cached) return cached;
-          // New note created offline: serve a cached app shell so the
-          // editor can boot and read the note from localStorage.
+          // New note created offline: serve a cached app-shell DOCUMENT so
+          // the editor can boot and read the note from localStorage.
           if (url.pathname.startsWith("/app/notes/")) {
-            const shell = await findAppShellFallback();
+            const shell = await findAppShellFallback(false);
             if (shell) return shell;
           }
           const offline = await caches.match(OFFLINE_URL);
@@ -221,11 +239,11 @@ self.addEventListener("fetch", (event) => {
         } catch (err) {
           const cached = await caches.match(request);
           if (cached) return cached;
-          // New note RSC never cached: return a cached app-shell RSC so
-          // client navigation succeeds; NoteEditor ignores a mismatched
-          // server prop and loads the local note by URL id.
+          // New note RSC never cached: return a cached note RSC (same
+          // component tree) so client navigation succeeds; NoteEditor
+          // ignores a mismatched server prop and loads the local note.
           if (url.pathname.startsWith("/app/notes/")) {
-            const shell = await findAppShellFallback();
+            const shell = await findAppShellFallback(true);
             if (shell) return shell;
           }
           // Return a minimal RSC response for offline
