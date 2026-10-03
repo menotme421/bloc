@@ -54,12 +54,17 @@ const SYNC_MAX_ROUNDS = 3;
 export function NoteEditor({
   userId: userIdProp,
   note,
+  noteId,
 }: {
   userId: string;
   note?: Note | null;
+  // Explicit id for hosts without a route param (e.g. the /offline shell,
+  // which renders the editor inline with no navigation).
+  noteId?: string;
 }) {
   const params = useParams<{ id: string }>();
-  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const paramId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const id = noteId ?? paramId;
 
   const userId = useResolvedUserId(userIdProp);
   const userIdRef = React.useRef(userId);
