@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n/provider";
+import { openNote } from "@/lib/open-note";
 import {
   Dialog,
   DialogContent,
@@ -145,14 +146,9 @@ export function MobileNoteCard({
       return;
     }
     markNoteOpened(userId, note.id);
-    const target = `/app/notes/${note.id}`;
     // From a note to another note, replace to avoid stacking notes in history.
     // Home/Search -> note should push so back returns to home.
-    if (pathname?.startsWith("/app/notes/")) {
-      router.replace(target);
-    } else {
-      router.push(target);
-    }
+    openNote(router, note.id, pathname?.startsWith("/app/notes/"));
   }
 
   function commitRename() {

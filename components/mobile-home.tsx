@@ -18,6 +18,7 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import ProfileAvatar from "@/components/profile-avatar";
 import { useI18n } from "@/lib/i18n/provider";
 import { useResolvedUserId } from "@/lib/use-resolved-user-id";
+import { openNote } from "@/lib/open-note";
 import { DOCS } from "@/lib/docs";
 
 export function MobileHome({
@@ -71,7 +72,7 @@ export function MobileHome({
     if (!userId) return;
     const note = createLocalNote(userId);
     markNoteOpened(userId, note.id);
-    router.push(`/app/notes/${note.id}`);
+    openNote(router, note.id);
   }
 
   return (

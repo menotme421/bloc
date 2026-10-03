@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { createLocalNote, markNoteOpened } from "@/lib/local-notes";
 import { useI18n } from "@/lib/i18n/provider";
 import { useResolvedUserId } from "@/lib/use-resolved-user-id";
+import { openNote } from "@/lib/open-note";
 
 export function MobileBottomNav({ userId: userIdProp }: { userId: string }) {
   const pathname = usePathname();
@@ -25,7 +26,7 @@ export function MobileBottomNav({ userId: userIdProp }: { userId: string }) {
     if (!userId) return;
     const note = createLocalNote(userId);
     markNoteOpened(userId, note.id);
-    router.push(`/app/notes/${note.id}`);
+    openNote(router, note.id);
   }
 
   return (

@@ -32,6 +32,7 @@ import type { Note } from "@/lib/notes"
 import { NoteSidebarItem } from "@/components/note-sidebar-item"
 import { TagChip } from "@/components/tag-chip"
 import { useResolvedUserId } from "@/lib/use-resolved-user-id"
+import { openNote } from "@/lib/open-note"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarGroup,
@@ -126,7 +127,7 @@ export function AppSidebar({
     if (!userId) return
     const note = createLocalNote(userId)
     markNoteOpened(userId, note.id)
-    router.push(`/app/notes/${note.id}`)
+    openNote(router, note.id)
   }
 
   // Sidebar not used on smartphone — bottom nav handles mobile. Hide entirely on mobile.

@@ -50,6 +50,7 @@ import { TagChip } from "@/components/tag-chip"
 import { filterNotes, getUniqueTags, type DateFilter } from "@/lib/note-filters"
 import { FilterBar } from "@/components/note-filters"
 import { useI18n } from "@/lib/i18n/provider"
+import { openNote } from "@/lib/open-note"
 
 
 
@@ -193,7 +194,7 @@ export function SearchCommand({
                     <CommandItem
                       value={`${note.title} ${note.tag ?? ""}`}
                       onSelect={() => {
-                        router.push(`/app/notes/${note.id}`)
+                        openNote(router, note.id)
                         onOpenChange(false)
                       }}
                       className="pr-10"
