@@ -322,7 +322,10 @@ export function NoteEditor({
     const currentUserId = userIdRef.current;
     if (!currentUserId) return;
 
-    const server = note ?? null;
+    // Offline shell fallback may serve another note's cached RSC for a brand-new
+    // id — ignore a server prop that doesn't match the URL id so the local
+    // offline note wins instead of rendering the wrong note.
+    const server = note && note.id === id ? note : null;
     const local = getLocalNote(currentUserId, id);
 
     if (!local && !server) {
@@ -380,11 +383,11 @@ export function NoteEditor({
   }
 
   React.useEffect(() => {
-    if (userId && editorReadyRef.current && editor) {
+    if (userId && editorReadyRef.current && editor && id) {
       handleResolve(editor);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, editor]);
+  }, [userId, editor, id]);
 
   // Reconnect: drain outbox when browser goes back online.
   React.useEffect(() => {

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const STATIC_CACHE = `bloc-static-${CACHE_VERSION}`;
 const PAGES_CACHE = `bloc-pages-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -64,6 +64,52 @@ function isAuthRequest(url) {
   return url.pathname.startsWith("/auth");
 }
 
+// Offline app-shell fallback for newly created notes.
+// A brand-new /app/notes/<uuid> was never visited while online, so neither
+// its document nor its RSC payload is in PAGES_CACHE. Without a fallback,
+// router.push() to it offline ends in 503/offline page and the note never
+// opens (old notes work because their RSC was cached at runtime).
+// Return any previously cached /app shell so Next.js can boot and
+// NoteEditor can load the note from localStorage by URL id.
+async function findAppShellFallback() {
+  const cache = await caches.open(PAGES_CACHE);
+  // 1) Preferred shells (exact URL match, document or RSC).
+  for (const shell of ["/app/home", "/app", "/app/notes"]) {
+    try {
+      const hit = await cache.match(shell);
+      if (hit) return hit;
+    } catch {}
+  }
+  // 2) Any cached note page — same component tree, NoteEditor
+  // corrects the data client-side via localStorage (see handleResolve).
+  try {
+    const keys = await cache.keys();
+    const noteKey = keys.find((r) => {
+      try {
+        return new URL(r.url).pathname.startsWith("/app/notes/");
+      } catch {
+        return false;
+      }
+    });
+    if (noteKey) {
+      const hit = await cache.match(noteKey);
+      if (hit) return hit;
+    }
+    const appKey = keys.find((r) => {
+      try {
+        return new URL(r.url).pathname.startsWith("/app/");
+      } catch {
+        return false;
+      }
+    });
+    if (appKey) {
+      const hit = await cache.match(appKey);
+      if (hit) return hit;
+    }
+  } catch {}
+  return null;
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -114,6 +160,12 @@ self.addEventListener("fetch", (event) => {
         } catch (err) {
           const cached = await caches.match(request);
           if (cached) return cached;
+          // New note created offline: serve a cached app shell so the
+          // editor can boot and read the note from localStorage.
+          if (url.pathname.startsWith("/app/notes/")) {
+            const shell = await findAppShellFallback();
+            if (shell) return shell;
+          }
           const offline = await caches.match(OFFLINE_URL);
           if (offline) return offline;
           // Last resort: return offline-like response
@@ -169,6 +221,13 @@ self.addEventListener("fetch", (event) => {
         } catch (err) {
           const cached = await caches.match(request);
           if (cached) return cached;
+          // New note RSC never cached: return a cached app-shell RSC so
+          // client navigation succeeds; NoteEditor ignores a mismatched
+          // server prop and loads the local note by URL id.
+          if (url.pathname.startsWith("/app/notes/")) {
+            const shell = await findAppShellFallback();
+            if (shell) return shell;
+          }
           // Return a minimal RSC response for offline
           return new Response(null, { status: 503, statusText: "Offline" });
         }
