@@ -3,11 +3,12 @@
 import * as React from "react";
 import { useActionState } from "react";
 import { useTheme } from "@/components/theme-provider";
-import { Loader2, Monitor, Moon, Sun, Trash2, TriangleAlert, GlobeIcon, ChevronDownIcon, CheckIcon, LogOut, PlayIcon, RouteIcon, BookOpenIcon } from "lucide-react";
+import { Loader2, Monitor, Moon, Sun, Trash2, TriangleAlert, GlobeIcon, ChevronDownIcon, CheckIcon, LogOut, PlayIcon, RouteIcon, BookOpenIcon, DownloadIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/provider";
 import { useTour } from "@/hooks/use-tour";
+import { isIosDevice, usePwaInstall } from "@/hooks/use-pwa-install";
 import { DOCS } from "@/lib/docs";
 import {
   updateDisplayName,
@@ -315,6 +316,90 @@ function DangerCard({ email }: { email: string }) {
   );
 }
 
+function InstallCard() {
+  const { t } = useI18n();
+  const { visible, canPrompt, promptInstall, dismiss } = usePwaInstall();
+  const [guideOpen, setGuideOpen] = React.useState(false);
+  const [pending, setPending] = React.useState(false);
+  const ios = isIosDevice();
+
+  if (!visible) return null;
+
+  const steps = ios
+    ? [
+        t("settings.install.iosStep1"),
+        t("settings.install.iosStep2"),
+        t("settings.install.iosStep3"),
+      ]
+    : [
+        t("settings.install.otherStep1"),
+        t("settings.install.otherStep2"),
+        t("settings.install.otherStep3"),
+      ];
+
+  async function handleInstall() {
+    if (canPrompt) {
+      setPending(true);
+      try {
+        await promptInstall();
+      } finally {
+        setPending(false);
+      }
+    } else {
+      setGuideOpen(true);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <DownloadIcon className="size-4" />
+          {t("settings.install.title")}
+        </CardTitle>
+        <CardDescription>{t("settings.install.desc")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            type="button"
+            onClick={() => void handleInstall()}
+            disabled={pending}
+          >
+            {pending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <DownloadIcon className="size-4" />
+            )}
+            {t("settings.install.button")}
+          </Button>
+          <Button type="button" variant="ghost" onClick={dismiss}>
+            {t("settings.install.notNow")}
+          </Button>
+        </div>
+
+        <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t("settings.install.guideTitle")}</DialogTitle>
+            </DialogHeader>
+            <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-muted-foreground">
+              {steps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+            <DialogFooter>
+              <Button type="button" onClick={() => setGuideOpen(false)}>
+                {t("settings.install.guideClose")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
 function HelpCard({ userId }: { userId: string }) {
   const { t } = useI18n();
   const { startQuickstart, startFullTour } = useTour(userId);
@@ -364,6 +449,7 @@ export function SettingsPage({
       <ProfileCard name={name} email={email} />
       <AppearanceCard />
       <LanguageCard />
+      <InstallCard />
       <HelpCard userId={userId} />
       <SignOutCard />
       <DangerCard email={email} />
