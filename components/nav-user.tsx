@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronsUpDown, LogOut, Settings2, Sparkles } from "lucide-react"
+import { BookOpenIcon, ChevronsUpDown, LogOut, Settings2 } from "lucide-react"
 
 import { signOut } from "@/app/(auth)/auth/actions"
 import { clearOfflineAuth } from "@/lib/auth-state"
@@ -24,6 +24,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useI18n } from "@/lib/i18n/provider"
 
 export type NavUserData = {
   name: string
@@ -33,6 +34,7 @@ export type NavUserData = {
 
 export function NavUser({ user }: { user?: NavUserData | null }) {
   const { isMobile } = useSidebar()
+  const { t } = useI18n()
 
   // Defensive: AppLayout may render with empty session offline or during
   // stale-bundle HMR. Never crash the whole sidebar on missing user.
@@ -80,9 +82,11 @@ export function NavUser({ user }: { user?: NavUserData | null }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles className="size-4" />
-                Upgrade to Pro
+              <DropdownMenuItem asChild>
+                <a href="/app/help">
+                  <BookOpenIcon className="size-4" />
+                  {t("help.helpCenter")}
+                </a>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a href="/app/settings">

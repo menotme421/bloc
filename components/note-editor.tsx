@@ -24,7 +24,7 @@ import {
 import { Placeholder } from "@tiptap/extensions";
 
 import { Button } from "@/components/ui/button";
-import { addOutboxEntry, getLocalNote, getOutbox, isInOutbox, markNoteOpened, upsertLocalNote } from "@/lib/local-notes";
+import { addOutboxEntry, getLocalNote, getNoteSnapshot, getOutbox, isInOutbox, markNoteOpened, subscribeNotes, upsertLocalNote } from "@/lib/local-notes";
 import { syncNote, type SyncStatus } from "@/lib/note-sync";
 import { setSyncStatus } from "@/lib/note-status";
 import type { Note } from "@/lib/notes";
@@ -393,6 +393,22 @@ export function NoteEditor({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, editor, id]);
+
+  // Live-sync the title input with external store updates (e.g. sidebar
+  // rename) so the open note reflects the new title instantly without
+  // close/reopen. Skipped while the title field itself is focused so
+  // in-progress typing is never clobbered or cursor-jumped.
+  const storedTitle = React.useSyncExternalStore(
+    subscribeNotes,
+    () =>
+      userId && id ? (getNoteSnapshot(userId, id)?.title ?? title) : title,
+    () => title
+  );
+  React.useEffect(() => {
+    if (storedTitle !== title && document.activeElement !== titleRef.current) {
+      setTitle(storedTitle);
+    }
+  }, [storedTitle, title]);
 
   // Reconnect: drain outbox when browser goes back online.
   React.useEffect(() => {

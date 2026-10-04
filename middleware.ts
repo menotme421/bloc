@@ -65,6 +65,10 @@ export async function middleware(request: NextRequest) {
     if (isLanding && isAuthed) {
       return NextResponse.redirect(new URL("/app", request.url));
     }
+
+    if (isLanding && !isAuthed) {
+      return NextResponse.redirect(new URL("/auth", request.url));
+    }
   }
 
   return supabaseResponse;

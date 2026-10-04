@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { usePathname, useRouter } from "next/navigation"
-import Link from "next/link"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser, type NavUserData } from "@/components/nav-user"
@@ -14,7 +13,8 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Library, PlusIcon, BookOpenIcon } from "lucide-react"
+import { Library, PlusIcon } from "lucide-react"
+import { BlocLogo } from "@/components/bloc-logo"
 import { useI18n } from "@/lib/i18n/provider"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
@@ -137,6 +137,7 @@ export function AppSidebar({
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
+          <BlocLogo size={28} />
           <span className="truncate text-[1.75rem] font-bold tracking-tight leading-none">Bloc</span>
         </div>
         <NavMain
@@ -207,13 +208,6 @@ export function AppSidebar({
         )}
       </SidebarContent>
       <SidebarFooter>
-        <Link
-          href="/app/help"
-          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <BookOpenIcon className="size-4" />
-          <span>{t("help.helpCenter")}</span>
-        </Link>
         <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />

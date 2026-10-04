@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import ProfileAvatar from "@/components/profile-avatar";
 import { useI18n } from "@/lib/i18n/provider";
+import { BlocLogo } from "@/components/bloc-logo";
 import { useResolvedUserId } from "@/lib/use-resolved-user-id";
 import { openNote } from "@/lib/open-note";
 import { DOCS } from "@/lib/docs";
@@ -80,6 +81,7 @@ export function MobileHome({
       {/* Branding header - home only with profile placeholder */}
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
+          <BlocLogo size={28} />
           <span className="text-[1.75rem] font-bold tracking-tight leading-none">Bloc</span>
         </div>
         <div className="flex items-center gap-1">

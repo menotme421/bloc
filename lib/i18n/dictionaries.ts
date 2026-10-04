@@ -95,7 +95,7 @@ export const en = {
     },
     language: {
       title: "Language",
-      desc: "Choose your preferred language. Saved locally (bloc:locale) and synced to your account (profiles.locale). Your explicit selection overrides browser detection.",
+      desc: "Choose your preferred language. Your explicit selection overrides browser detection.",
       english: "English",
       malay: "Malay — Bahasa Melayu",
       zhCN: "简体中文",
@@ -314,7 +314,7 @@ export const ms: Dictionary = {
     },
     language: {
       title: "Bahasa",
-      desc: "Pilih bahasa pilihan anda. Disimpan secara tempatan (bloc:locale) dan disegerakkan ke akaun anda (profiles.locale). Pilihan anda akan mengatasi pengesanan pelayar.",
+      desc: "Pilih bahasa pilihan anda. Pilihan anda akan mengatasi pengesanan pelayar.",
       english: "English",
       malay: "Malay — Bahasa Melayu",
       zhCN: "简体中文",
@@ -533,7 +533,7 @@ export const zhCN: Dictionary = {
     },
     language: {
       title: "语言",
-      desc: "选择你的偏好语言。本地保存（bloc:locale）并同步到你的账户（profiles.locale）。你的显式选择将覆盖浏览器检测。",
+      desc: "选择你的偏好语言。你的显式选择将覆盖浏览器检测。",
       english: "English",
       malay: "Malay — Bahasa Melayu",
       zhCN: "简体中文",
@@ -752,7 +752,7 @@ export const zhTW: Dictionary = {
     },
     language: {
       title: "語言",
-      desc: "選擇你的偏好語言。本地儲存（bloc:locale）並同步到你的帳戶（profiles.locale）。你的明確選擇將覆蓋瀏覽器偵測。",
+      desc: "選擇你的偏好語言。你的明確選擇將覆蓋瀏覽器偵測。",
       english: "English",
       malay: "Malay — Bahasa Melayu",
       zhCN: "简体中文",

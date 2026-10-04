@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   ArrowLeftIcon,
-  BookOpenIcon,
   EllipsisIcon,
   FileTextIcon,
   LayoutGridIcon,
@@ -70,6 +69,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FilterBar } from "@/components/note-filters";
+import { BlocLogo } from "@/components/bloc-logo";
 import { filterNotes, getUniqueTags, type DateFilter } from "@/lib/note-filters";
 import { NavMain } from "@/components/nav-main";
 import {
@@ -538,6 +538,7 @@ export function OfflineShell() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-4 pb-28 md:hidden">
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
+          <BlocLogo size={28} />
           <span className="text-[1.75rem] font-bold tracking-tight leading-none">Bloc</span>
         </div>
         <SyncBadge userId={userId} />
@@ -632,6 +633,7 @@ export function OfflineShell() {
     <Sidebar className="border-r-0">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
+          <BlocLogo size={28} />
           <span className="truncate text-[1.75rem] font-bold tracking-tight leading-none">
             Bloc
           </span>
@@ -711,10 +713,6 @@ export function OfflineShell() {
         )}
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground">
-          <BookOpenIcon className="size-4" />
-          <span>{t("help.helpCenter")}</span>
-        </div>
         <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
             U

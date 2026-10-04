@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
 
@@ -41,3 +41,8 @@ for (const [file, svg] of jobs) {
   await sharp(Buffer.from(svg)).png().toFile(path.join(outDir, file));
   console.log("generated", file);
 }
+
+// Keep the vector favicon in sync with the PNGs from the same source.
+// Mirrors components/bloc-logo.tsx.
+await writeFile(path.join(outDir, "bloc-icon.svg"), anyIcon(512));
+console.log("generated", "bloc-icon.svg");

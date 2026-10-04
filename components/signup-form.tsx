@@ -11,6 +11,7 @@ import {
 } from "@/app/(auth)/auth/actions";
 import { Eye, EyeOff, CircleCheck, Circle, X, MailCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card"
+import { BlocLogo } from "@/components/bloc-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -461,6 +462,10 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <div className="flex items-center justify-center gap-2">
+        <BlocLogo size={32} />
+        <span className="text-2xl font-bold tracking-tight">Bloc</span>
+      </div>
       <Card className="overflow-hidden rounded-md border border-border p-0 ring-0">
         <CardContent className="grid p-0 md:grid-cols-2">
           <ModeForm
