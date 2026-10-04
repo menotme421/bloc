@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/supabase/config";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -13,6 +14,15 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#ffffff",
     theme_color: "#ffffff",
     categories: ["productivity", "education"],
+    // Self-list so getInstalledRelatedApps() can report this PWA as
+    // installed (lets Settings hide the install card on devices that
+    // already have it). Must be the origin the app was installed from.
+    related_applications: [
+      {
+        platform: "webapp",
+        url: `${SITE_URL}/manifest.webmanifest`,
+      },
+    ],
     icons: [
       {
         src: "/icons/icon-192.png",

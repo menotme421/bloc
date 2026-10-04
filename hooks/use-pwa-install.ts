@@ -2,10 +2,22 @@
 
 import * as React from "react";
 
-type BeforeInstallPromptEvent = Event & {
+export type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
+
+declare global {
+  interface Window {
+    /** Stashed install prompt, captured early by PwaRegister. */
+    __blocInstallPrompt?: BeforeInstallPromptEvent | null;
+    /** Set when getInstalledRelatedApps reports this PWA installed. */
+    __blocInstalledRelated?: boolean;
+  }
+}
+
+export const INSTALL_READY_EVENT = "bloc:install-ready";
+export const INSTALLED_EVENT = "bloc:installed";
 
 const DISMISS_KEY = "bloc:pwa-install:dismissed";
 
@@ -22,14 +34,21 @@ function isStandalone(): boolean {
   return false;
 }
 
+function getInstalledSnapshot(): boolean {
+  if (typeof window === "undefined") return false;
+  return isStandalone() || window.__blocInstalledRelated === true;
+}
+
 function subscribeInstalled(onChange: () => void) {
   const mq = window.matchMedia("(display-mode: standalone)");
   const handler = () => onChange();
   mq.addEventListener("change", handler);
   window.addEventListener("appinstalled", handler);
+  window.addEventListener(INSTALLED_EVENT, handler);
   return () => {
     mq.removeEventListener("change", handler);
     window.removeEventListener("appinstalled", handler);
+    window.removeEventListener(INSTALLED_EVENT, handler);
   };
 }
 
@@ -47,32 +66,53 @@ function wasDismissed(): boolean {
   }
 }
 
+function takeStashedPrompt(): BeforeInstallPromptEvent | null {
+  if (typeof window === "undefined") return null;
+  return window.__blocInstallPrompt ?? null;
+}
+
 /**
- * PWA install state. Captures `beforeinstallprompt` so an in-app
- * "Install app" button can trigger the native dialog instead of
- * making the user hunt through the browser menu.
+ * PWA install state. The `beforeinstallprompt` event is captured globally
+ * by PwaRegister on first load (it fires once and won't re-fire for a
+ * late-mounted listener), and this hook picks the stashed event up.
  */
 export function usePwaInstall() {
   const installed = React.useSyncExternalStore(
     subscribeInstalled,
-    isStandalone,
+    getInstalledSnapshot,
     () => false
   );
   const [deferred, setDeferred] =
-    React.useState<BeforeInstallPromptEvent | null>(null);
+    React.useState<BeforeInstallPromptEvent | null>(() =>
+      takeStashedPrompt()
+    );
   const [dismissed, setDismissed] = React.useState<boolean>(() =>
     wasDismissed()
   );
 
   React.useEffect(() => {
-    const onBeforeInstall = (e: Event) => {
-      // Hold the event so the in-app button can prompt on demand.
-      e.preventDefault();
-      setDeferred(e as BeforeInstallPromptEvent);
+    // Pick up a prompt stashed before this component mounted.
+    const stashed = takeStashedPrompt();
+    if (stashed) setDeferred(stashed);
+
+    const onReady = () => {
+      const next = takeStashedPrompt();
+      if (next) setDeferred(next);
     };
+    const onBeforeInstall = (e: Event) => {
+      // Backstop in case PwaRegister missed it — hold the event so the
+      // in-app button can prompt on demand.
+      e.preventDefault();
+      const bip = e as BeforeInstallPromptEvent;
+      window.__blocInstallPrompt = bip;
+      setDeferred(bip);
+    };
+    window.addEventListener(INSTALL_READY_EVENT, onReady);
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    return () =>
+    return () => {
+      window.removeEventListener(INSTALL_READY_EVENT, onReady);
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    };
   }, []);
 
   const promptInstall = React.useCallback(async () => {
@@ -80,6 +120,7 @@ export function usePwaInstall() {
     await deferred.prompt();
     const { outcome } = await deferred.userChoice;
     setDeferred(null);
+    window.__blocInstallPrompt = null;
     if (outcome === "dismissed") {
       try {
         window.localStorage.setItem(DISMISS_KEY, "1");
@@ -97,7 +138,7 @@ export function usePwaInstall() {
   }, []);
 
   return {
-    /** True once running as an installed app. */
+    /** True once running as an installed app (or known-installed). */
     installed,
     /** Native install dialog available (Chromium desktop/Android). */
     canPrompt: deferred !== null,

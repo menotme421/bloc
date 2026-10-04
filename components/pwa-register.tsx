@@ -1,13 +1,59 @@
 "use client";
 
 import { useEffect } from "react";
+import {
+  INSTALLED_EVENT,
+  INSTALL_READY_EVENT,
+  type BeforeInstallPromptEvent,
+} from "@/hooks/use-pwa-install";
+
+type InstalledRelatedApp = {
+  platform: string;
+  url?: string;
+  id?: string;
+};
+
+/**
+ * If this PWA is already installed on the device, Chromium suppresses
+ * `beforeinstallprompt` — even in a regular browser tab. Self-listing in
+ * the manifest's `related_applications` lets us detect that and hide
+ * install UI instead of showing a dead-end guide.
+ */
+async function flagInstalledRelatedApp(): Promise<void> {
+  try {
+    const nav = navigator as Navigator & {
+      getInstalledRelatedApps?: () => Promise<InstalledRelatedApp[]>;
+    };
+    if (typeof nav.getInstalledRelatedApps !== "function") return;
+    const related = await nav.getInstalledRelatedApps();
+    if (related.some((app) => app.platform === "webapp")) {
+      window.__blocInstalledRelated = true;
+      window.dispatchEvent(new Event(INSTALLED_EVENT));
+    }
+  } catch {
+    // API unavailable or denied — install UI just stays visible.
+  }
+}
 
 export function PwaRegister() {
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
+    // Capture the install prompt at first load: it fires once per page
+    // load and won't re-fire for listeners attached later (e.g. when
+    // the user navigates to Settings client-side).
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      window.__blocInstallPrompt = e as BeforeInstallPromptEvent;
+      window.dispatchEvent(new Event(INSTALL_READY_EVENT));
+    };
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+
+    void flagInstalledRelatedApp();
+
+    let onControllerChange: (() => void) | null = null;
+    if ("serviceWorker" in navigator) {
 
     let refreshing = false;
-    const onControllerChange = () => {
+    onControllerChange = () => {
       if (refreshing) return;
       refreshing = true;
       window.location.reload();
@@ -47,9 +93,18 @@ export function PwaRegister() {
     };
 
     register();
+    }
 
     return () => {
-      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      if (onControllerChange) {
+        try {
+          navigator.serviceWorker.removeEventListener(
+            "controllerchange",
+            onControllerChange
+          );
+        } catch {}
+      }
     };
   }, []);
 
