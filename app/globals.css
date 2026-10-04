@@ -1893,6 +1893,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
   }
 
   .code-ide-header-right {
@@ -1938,6 +1939,64 @@
     max-width: 10rem;
     font-size: 0.75rem;
     font-weight: 600;
+  }
+
+  /* ── Small phones: two-row header so Run can never be squeezed
+     off-screen. Row 1: back + title … Done. Row 2: language + Run. */
+  @media (max-width: 639px) {
+    .code-ide-header {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "left right"
+        "actions actions";
+      row-gap: 0.5rem;
+    }
+
+    /* Preview mode renders no center cell — collapse the empty row. */
+    .code-ide-header:not(:has(.code-ide-header-center)) {
+      row-gap: 0;
+    }
+
+    .code-ide-header-left {
+      grid-area: left;
+    }
+
+    .code-ide-header-center {
+      grid-area: actions;
+    }
+
+    .code-ide-header-right {
+      grid-area: right;
+    }
+
+    /* Hide the Saved indicator on tiny screens to guarantee row 1 fits. */
+    .code-ide-header .excalidraw-card-count {
+      display: none;
+    }
+
+    /* Language picker takes the free space and ellipsizes. */
+    .code-ide-header .code-ide-lang {
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: none;
+      min-height: 2.5rem;
+    }
+
+    /* Run keeps a full label and a 44px touch target on row 2. */
+    .code-ide-header-center .code-block-btn {
+      flex: none;
+      min-height: 2.5rem;
+      padding: 0.625rem 1rem;
+      font-size: 0.875rem;
+    }
+
+    .code-ide-header-center .code-block-btn span {
+      display: inline;
+    }
+
+    .code-ide-header-right .excalidraw-board-done {
+      min-height: 2.5rem;
+    }
   }
 
   .code-ide-body {

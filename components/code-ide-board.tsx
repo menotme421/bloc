@@ -639,30 +639,30 @@ function CodeIde({
               {pending ? "Saving…" : "Saved"}
             </span>
           </span>
-          <Select value={pickerValue} onValueChange={handleLanguageChange}>
-            <SelectTrigger
-              size="sm"
-              className="code-ide-lang"
-              aria-label="Code language"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" align="start" className="max-h-64">
-              {groupedLanguageOptions().map((g) => (
-                <SelectGroup key={g.label}>
-                  <SelectLabel>{g.label}</SelectLabel>
-                  {g.options.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
-        <div className="code-ide-header-center">
-          {isPreview ? null : (
+        {isPreview ? null : (
+          <div className="code-ide-header-center">
+            <Select value={pickerValue} onValueChange={handleLanguageChange}>
+              <SelectTrigger
+                size="sm"
+                className="code-ide-lang"
+                aria-label="Code language"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" align="start" className="max-h-64">
+                {groupedLanguageOptions().map((g) => (
+                  <SelectGroup key={g.label}>
+                    <SelectLabel>{g.label}</SelectLabel>
+                    {g.options.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
             <button
               type="button"
               className="code-block-btn code-block-run"
@@ -680,8 +680,8 @@ function CodeIde({
                 {running ? "Running…" : "Run"}
               </span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
         <div className="code-ide-header-right">
           <button
             type="button"
