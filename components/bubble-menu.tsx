@@ -41,14 +41,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
@@ -424,7 +416,7 @@ export function BubbleMenu({
 
   const shouldShow = React.useCallback(
     ({ editor: e }: { editor: Editor }) => {
-      // Keep bubble visible while color/turnInto dropdown is open (focus moves to portal)
+      // Keep bubble visible while a color/turnInto panel is open.
       if (openPanel) return true;
       const { selection } = e.state;
       if (selection.empty) return false;
@@ -541,87 +533,106 @@ export function BubbleMenu({
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 
-      <DropdownMenu
-        open={openPanel === "textColor"}
-        onOpenChange={(open) => {
-          console.log("[bubble] textColor dropdown", open);
-          setOpenPanel(open ? "textColor" : null);
-        }}
-      >
-        <DropdownMenuTrigger asChild>
-          <ToolbarButton label="Text color" onMouseDown={(e) => e.stopPropagation()}>
-            <PaletteIcon
-              className="size-4"
-              style={{
-                color: activeColor,
-                textDecoration: activeColor ? undefined : "none",
-              }}
-            />
-          </ToolbarButton>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="top">
-          <DropdownMenuLabel>Text color</DropdownMenuLabel>
-          <div className="flex flex-wrap gap-1 px-1.5 py-1">
-            {TEXT_COLORS.map(({ name, value }) => (
-              <ColorSwatch
-                key={name}
-                color={value}
-                label={name === "Default" ? "Default color" : name}
-                active={name === "Default" ? !activeColor : activeColor === value}
-                onSelect={() => {
-                  if (name === "Default") {
-                    editor.chain().focus().unsetColor().run();
-                  } else {
-                    editor.chain().focus().setColor(value).run();
-                  }
-                  setOpenPanel(null);
-                }}
-              />
-            ))}
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <DropdownMenu
-        open={openPanel === "highlight"}
-        onOpenChange={(open) => {
-          console.log("[bubble] highlight dropdown", open);
-          setOpenPanel(open ? "highlight" : null);
-        }}
-      >
-        <DropdownMenuTrigger asChild>
-          <ToolbarButton
-            label="Highlight color"
-            active={Boolean(activeHighlight)}
-            onMouseDown={(e) => e.stopPropagation()}
+      {/* Color panels use inline popovers (not Radix) on purpose — same
+          reason as Turn-into below: Radix portals steal editor focus and
+          the Tiptap hide race closes the bubble, so the menu never opens.
+          Plain buttons with onMouseDown={preventDefault} keep the
+          selection — same pattern as Bold/Italic, which work reliably. */}
+      <div className="relative">
+        <ToolbarButton
+          label="Text color"
+          active={Boolean(activeColor)}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() =>
+            setOpenPanel(openPanel === "textColor" ? null : "textColor")
+          }
+        >
+          <PaletteIcon
+            className="size-4"
+            style={{
+              color: activeColor,
+              textDecoration: activeColor ? undefined : "none",
+            }}
+          />
+        </ToolbarButton>
+        {openPanel === "textColor" && (
+          <div
+            role="menu"
+            aria-label="Text color"
+            className="absolute bottom-full left-0 z-50 mb-2 w-60 rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
           >
-            <HighlighterIcon className="size-4" />
-          </ToolbarButton>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="top">
-          <DropdownMenuLabel>Highlight color</DropdownMenuLabel>
-          <div className="flex flex-wrap gap-1 px-1.5 py-1">
-            {HIGHLIGHT_COLORS.map(({ name, value }) => (
-              <ColorSwatch
-                key={name}
-                color={value}
-                label={name === "None" ? "No highlight" : `${name} highlight`}
-                active={
-                  name === "None" ? !activeHighlight : activeHighlight === value
-                }
-                onSelect={() => {
-                  if (name === "None") {
-                    editor.chain().focus().unsetHighlight().run();
-                  } else {
-                    editor.chain().focus().setHighlight({ color: value }).run();
+            <div className="px-1.5 pt-1 pb-0.5 text-xs font-medium text-muted-foreground">
+              Text color
+            </div>
+            <div className="grid grid-cols-7 gap-1 p-1.5">
+              {TEXT_COLORS.map(({ name, value }) => (
+                <ColorSwatch
+                  key={name}
+                  color={value}
+                  label={name === "Default" ? "Default color" : name}
+                  active={
+                    name === "Default" ? !activeColor : activeColor === value
                   }
-                  setOpenPanel(null);
-                }}
-              />
-            ))}
+                  onSelect={() => {
+                    if (name === "Default") {
+                      editor.chain().focus().unsetColor().run();
+                    } else {
+                      editor.chain().focus().setColor(value).run();
+                    }
+                    setOpenPanel(null);
+                  }}
+                />
+              ))}
+            </div>
           </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        )}
+      </div>
+
+      <div className="relative">
+        <ToolbarButton
+          label="Highlight color"
+          active={Boolean(activeHighlight)}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() =>
+            setOpenPanel(openPanel === "highlight" ? null : "highlight")
+          }
+        >
+          <HighlighterIcon className="size-4" />
+        </ToolbarButton>
+        {openPanel === "highlight" && (
+          <div
+            role="menu"
+            aria-label="Highlight color"
+            className="absolute bottom-full left-0 z-50 mb-2 w-60 rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+          >
+            <div className="px-1.5 pt-1 pb-0.5 text-xs font-medium text-muted-foreground">
+              Highlight color
+            </div>
+            <div className="grid grid-cols-7 gap-1 p-1.5">
+              {HIGHLIGHT_COLORS.map(({ name, value }) => (
+                <ColorSwatch
+                  key={name}
+                  color={value}
+                  label={name === "None" ? "No highlight" : `${name} highlight`}
+                  active={
+                    name === "None"
+                      ? !activeHighlight
+                      : activeHighlight === value
+                  }
+                  onSelect={() => {
+                    if (name === "None") {
+                      editor.chain().focus().unsetHighlight().run();
+                    } else {
+                      editor.chain().focus().setHighlight({ color: value }).run();
+                    }
+                    setOpenPanel(null);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Turn-into uses an inline panel (not Radix) on purpose: Radix portals
           steal editor focus and the Tiptap hide race swallows item clicks
